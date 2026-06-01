@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CMS-0057 PAS Interactive API Testing Tool</title>
+  <!-- Modern Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body class="dark-theme">
+  <!-- Core Design System Wrapper -->
+  <div class="app-container">
+    
+    <!-- Top Premium Navigation Bar -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">FHIR</div>
+        <div class="logo-text">
+          <h1>CMS-0057 PAS</h1>
+          <span class="subtext">Prior Authorization Support Testing Suite</span>
+        </div>
+      </div>
+      <div class="server-status-pill">
+        <span class="pulse-indicator status-green" id="proxyStatusIndicator"></span>
+        <span class="status-text" id="proxyStatusText">Checking Proxy Status...</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="workspace">
+      
+      <!-- Left Sidebar: Configuration & Presets -->
+      <section class="sidebar glass-panel">
+        <div class="sidebar-section">
+          <h2>1. Connection Settings</h2>
+          <div class="form-group">
+            <label for="fhirServerUrl">Target PAS Server URL</label>
+            <div class="input-wrapper">
+              <input type="text" id="fhirServerUrl" value="mock-pas-server" placeholder="e.g. https://fhir.payer.com/fhir/Claim/$submit">
+            </div>
+            <p class="input-help">Use <code>mock-pas-server</code> for integrated standalone testing.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="operationSelect">FHIR Operation</label>
+            <select id="operationSelect">
+              <option value="$submit" selected>Claim/$submit (Submit Request)</option>
+              <option value="$inquire">Claim/$inquire (Inquire Status)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Request Headers</label>
+            <div class="headers-list" id="headersList">
+              <div class="header-row">
+                <input type="text" class="hdr-key" value="Accept" disabled>
+                <input type="text" class="hdr-val" value="application/fhir+json" disabled>
+              </div>
+              <div class="header-row">
+                <input type="text" class="hdr-key" value="Content-Type" disabled>
+                <input type="text" class="hdr-val" value="application/fhir+json" disabled>
+              </div>
+              <div class="header-row">
+                <input type="text" class="hdr-key" placeholder="Authorization" id="authKey" value="Authorization">
+                <input type="text" class="hdr-val" placeholder="Bearer eyJhbGciOi..." id="authVal" value="Bearer demo-token-cms-0057">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2>2. Preset FHIR Templates</h2>
+          <div class="template-selector-group">
+            <button class="btn btn-preset active" id="btnTplClinical" data-template="clinical">
+              <span class="btn-icon">🩺</span>
+              <div class="btn-lbl">
+                <strong>Standard Clinical PA</strong>
+                <span>Physical Therapy Order (97110)</span>
+              </div>
+            </button>
+            <button class="btn btn-preset" id="btnTplExpedited" data-template="expedited">
+              <span class="btn-icon">⚡</span>
+              <div class="btn-lbl">
+                <strong>Expedited Urgent PA</strong>
+                <span>Total Knee Arthroplasty (27447)</span>
+              </div>
+            </button>
+            <button class="btn btn-preset" id="btnTplMedication" data-template="medication">
+              <span class="btn-icon">💊</span>
+              <div class="btn-lbl">
+                <strong>Medication Specialty PA</strong>
+                <span>Dupilumab Injection (RxNorm)</span>
+              </div>
+            </button>
+            <button class="btn btn-preset" id="btnTplInquiry" data-template="inquiry">
+              <span class="btn-icon">🔍</span>
+              <div class="btn-lbl">
+                <strong>PA Status Inquiry</strong>
+                <span>Check Status ($inquire)</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="sidebar-actions">
+          <button id="btnExecute" class="btn btn-primary btn-execute">
+            <span class="btn-execute-text">Send PAS Request</span>
+            <span class="btn-execute-icon">🚀</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Right Panel: Editors & Viewers -->
+      <section class="workspace-main">
+        
+        <!-- Top Half: Request Editor -->
+        <div class="editor-panel glass-panel">
+          <div class="panel-header">
+            <div class="tabs">
+              <button class="tab-btn active" data-target="req-json-tab">FHIR Request Bundle (JSON)</button>
+              <button class="tab-btn" data-target="req-summary-tab">Clinical Payload Map</button>
+            </div>
+            <div class="actions">
+              <button class="btn btn-sm" id="btnFormatJson">Format JSON</button>
+              <button class="btn btn-sm" id="btnResetJson">Reset Default</button>
+            </div>
+          </div>
+          
+          <div class="panel-content">
+            <div id="req-json-tab" class="tab-content active">
+              <textarea id="jsonEditor" spellcheck="false" class="code-editor"></textarea>
+            </div>
+            
+            <div id="req-summary-tab" class="tab-content">
+              <div class="clinical-map-grid" id="clinicalMapGrid">
+                <!-- Programmatically populated with human-readable FHIR resource values -->
+                <div class="map-card">
+                  <h3>Patient Information</h3>
+                  <div class="map-item"><strong>Name:</strong> <span id="mapPatName">-</span></div>
+                  <div class="map-item"><strong>Gender:</strong> <span id="mapPatGender">-</span></div>
+                  <div class="map-item"><strong>DOB:</strong> <span id="mapPatDob">-</span></div>
+                </div>
+                <div class="map-card">
+                  <h3>Prior Auth Request</h3>
+                  <div class="map-item"><strong>Use:</strong> <span id="mapClaimUse">-</span></div>
+                  <div class="map-item"><strong>Priority:</strong> <span id="mapClaimPriority">-</span></div>
+                  <div class="map-item"><strong>Service/Item:</strong> <span id="mapClaimService">-</span></div>
+                </div>
+                <div class="map-card">
+                  <h3>Payer & Coverage</h3>
+                  <div class="map-item"><strong>Payer:</strong> <span id="mapCoveragePayer">-</span></div>
+                  <div class="map-item"><strong>Plan Type:</strong> <span id="mapCoverageType">-</span></div>
+                  <div class="map-item"><strong>Provider NPI Reference:</strong> <span id="mapClaimProvider">-</span></div>
+                </div>
+                <div class="map-card">
+                  <h3>Clinical Justification</h3>
+                  <div class="map-item"><strong>Resource Type:</strong> <span id="mapReasonType">-</span></div>
+                  <div class="map-item"><strong>Indication/Code:</strong> <span id="mapReasonCode">-</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Half: Response Inspector -->
+        <div class="response-panel glass-panel">
+          <div class="panel-header">
+            <div class="tabs">
+              <button class="tab-btn active" data-target="res-json-tab">FHIR Response (JSON)</button>
+              <button class="tab-btn" data-target="res-adjudication-tab">Adjudication Breakdown</button>
+              <button class="tab-btn" data-target="res-x12-tab">X12 278 Mapping</button>
+            </div>
+            <div class="meta-indicators" id="resMetaIndicators" style="display: none;">
+              <span class="indicator-pill" id="resStatusPill">Status: --</span>
+              <span class="indicator-pill" id="resTimePill">Time: --</span>
+              <span class="indicator-pill" id="resSizePill">Size: --</span>
+            </div>
+          </div>
+
+          <div class="panel-content">
+            <!-- Tab: JSON Response -->
+            <div id="res-json-tab" class="tab-content active">
+              <div class="response-placeholder" id="responsePlaceholder">
+                <div class="placeholder-content">
+                  <span class="placeholder-icon">📥</span>
+                  <h3>No Active Request</h3>
+                  <p>Configure the endpoint and click "Send PAS Request" above to execute a live test.</p>
+                </div>
+              </div>
+              <div id="responseViewContainer" style="display: none; height: 100%;">
+                <pre class="code-viewer"><code id="responseViewer" class="language-json"></code></pre>
+              </div>
+            </div>
+
+            <!-- Tab: Adjudication Breakdown -->
+            <div id="res-adjudication-tab" class="tab-content">
+              <div class="response-placeholder" id="adjudicationPlaceholder">
+                <p>Send a prior authorization request to see the real-time adjudicated response and clinical decision details here.</p>
+              </div>
+              <div id="adjudicationView" class="adjudication-details" style="display: none;">
+                <div class="decision-banner" id="decisionBanner">
+                  <div class="decision-badge" id="decisionBadge">APPROVED</div>
+                  <div class="decision-reason" id="decisionReason">All clinical criteria were successfully satisfied.</div>
+                </div>
+                <div class="adjudication-grid">
+                  <div class="adj-card">
+                    <h4>Review Details</h4>
+                    <p><strong>Outcome Code:</strong> <span id="adjOutcome">--</span></p>
+                    <p><strong>Insurer reference:</strong> <span id="adjInsurer">--</span></p>
+                    <p><strong>Auth Date:</strong> <span id="adjCreated">--</span></p>
+                    <p><strong>Pre-Auth Reference ID:</strong> <span id="adjId">--</span></p>
+                  </div>
+                  <div class="adj-card">
+                    <h4>Itemized Decisions</h4>
+                    <div id="adjItemContainer">
+                      <!-- Populated dynamically -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tab: X12 278 Mapping -->
+            <div id="res-x12-tab" class="tab-content">
+              <div class="x12-visualizer-container">
+                <div class="x12-header">
+                  <h3>Da Vinci PAS FHIR ↔ ASC X12 278 Mapping Pipeline</h3>
+                  <p>Prior Authorization Support requires translating FHIR APIs to standard HIPAA X12 278 transactions for payer adjudication backend processing.</p>
+                </div>
+                <div class="x12-flow">
+                  <div class="x12-step">
+                    <div class="step-num">1</div>
+                    <h4>FHIR Request Bundle</h4>
+                    <p>Standard JSON payload sent via <code>Claim/$submit</code> operation containing clinical resources.</p>
+                    <div class="mapping-bullets">
+                      <div><code>Patient.name</code></div>
+                      <div><code>Practitioner.npi</code></div>
+                      <div><code>Claim.item.productOrService</code></div>
+                    </div>
+                  </div>
+                  <div class="x12-arrow">➔</div>
+                  <div class="x12-step highlight-x12">
+                    <div class="step-num">2</div>
+                    <h4>ASC X12 278 Request</h4>
+                    <p>The FHIR server translates the payload into an X12 278 request transaction.</p>
+                    <div class="mapping-bullets">
+                      <div><code>Loop 2010CA NM1*IL (Subscriber)</code></div>
+                      <div><code>Loop 2010AA NM1*1Y (Billing Provider)</code></div>
+                      <div><code>Loop 2000C SV1 Segment (Service Line)</code></div>
+                    </div>
+                  </div>
+                  <div class="x12-arrow">➔</div>
+                  <div class="x12-step highlight-x12">
+                    <div class="step-num">3</div>
+                    <h4>ASC X12 278 Response</h4>
+                    <p>The payer's core adjudication engine generates the HIPAA X12 278 response.</p>
+                    <div class="mapping-bullets">
+                      <div><code>HCR01 = "A" (Approved) or "A3" (Pended)</code></div>
+                      <div><code>HCR03 = Auth Ref Number</code></div>
+                      <div><code>Loop 2000F HSD Segment (Quantity/Dates)</code></div>
+                    </div>
+                  </div>
+                  <div class="x12-arrow">➔</div>
+                  <div class="x12-step">
+                    <div class="step-num">4</div>
+                    <h4>FHIR ClaimResponse</h4>
+                    <p>The client receives a FHIR ClaimResponse resource with decision mapped back to JSON.</p>
+                    <div class="mapping-bullets">
+                      <div><code>ClaimResponse.outcome</code></div>
+                      <div><code>ClaimResponse.disposition</code></div>
+                      <div><code>ClaimResponse.item.adjudication</code></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div>CMS-0057 Prior Authorization Support (PAS) Testing Tool &copy; 2026. Made with 🤍 for HL7 FHIR Interoperability.</div>
+      <div class="footer-links">
+        <a href="https://hl7.org/fhir/us/davinci-pas/" target="_blank">Da Vinci PAS IG</a>
+        <span class="dot">•</span>
+        <a href="https://www.cms.gov/prior-authorization-interoperability-and-patient-access-final-rule-cms-0057-f" target="_blank">CMS-0057 Rule</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
