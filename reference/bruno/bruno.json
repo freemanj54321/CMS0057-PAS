@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Da Vinci PAS $inquire (STU 2 v2.0.1)",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

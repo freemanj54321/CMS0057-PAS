@@ -1,0 +1,123 @@
+meta {
+  name: OAuth - Get Access Token
+  type: http
+  seq: 0
+}
+
+post {
+  url: {{tokenEndpoint}}
+  body: formUrlEncoded
+  auth: none
+}
+
+headers {
+  Content-Type: application/x-www-form-urlencoded
+  Accept: application/json
+}
+
+body:form-urlencoded {
+  grant_type: client_credentials
+  client_id: {{clientId}}
+  client_secret: {{clientSecret}}
+  scope: {{oauthScope}}
+}
+
+script:pre-request {
+  // If payerFhirBaseUrl was discovered via Plan Net and tokenEndpoint
+  // hasn't been manually set, try to derive it
+  const discovered = bru.getVar("discoveredTokenEndpoint");
+  const manual = bru.getEnvVar("tokenEndpoint");
+
+  if (discovered && (!manual || manual === "https://payer.example.com/oauth2/token")) {
+    bru.setVar("tokenEndpoint", discovered);
+    console.log("ℹ️  Using discovered token endpoint: " + discovered);
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  if (status === 200 && body && body.access_token) {
+    bru.setVar("accessToken", body.access_token);
+
+    const expiresIn = body.expires_in || "(unknown)";
+    const tokenType = body.token_type || "Bearer";
+    const scope = body.scope || "(not returned)";
+
+    // Store expiry time for downstream checks
+    if (body.expires_in) {
+      const expiresAt = new Date(Date.now() + body.expires_in * 1000).toISOString();
+      bru.setVar("tokenExpiresAt", expiresAt);
+    }
+
+    console.log("✅ OAuth token acquired:");
+    console.log("   Type:       " + tokenType);
+    console.log("   Expires in: " + expiresIn + "s");
+    console.log("   Scope:      " + scope);
+    console.log("   Token:      " + body.access_token.substring(0, 20) + "...");
+  } else {
+    console.error("❌ OAuth token request failed (HTTP " + status + ")");
+    if (body && body.error) {
+      console.error("   Error:       " + body.error);
+      console.error("   Description: " + (body.error_description || "(none)"));
+    }
+    console.error("   Check clientId, clientSecret, scope, and tokenEndpoint.");
+  }
+}
+
+tests {
+  test("Token request returns 200", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Response contains access_token", function() {
+    const body = res.getBody();
+    expect(body).to.have.property("access_token");
+    expect(body.access_token).to.be.a("string").that.is.not.empty;
+  });
+
+  test("Token type is Bearer", function() {
+    const body = res.getBody();
+    expect(body.token_type.toLowerCase()).to.equal("bearer");
+  });
+}
+
+docs {
+  # OAuth — Get Access Token
+
+  Obtains a Bearer token for authenticated PAS API calls using
+  the OAuth 2.0 Client Credentials flow.
+
+  ## Chain position
+  Run this **after** Plan Net discovery (which may find the token endpoint)
+  and **before** any $inquire request.
+
+  ```
+  Plan Net → OAuth Token → $inquire
+  ```
+
+  ## What gets set automatically
+  - `accessToken` — Bearer token used by all $inquire requests
+  - `tokenExpiresAt` — ISO timestamp when the token expires
+
+  ## Required environment variables
+  | Variable        | Description                                   |
+  |-----------------|-----------------------------------------------|
+  | `tokenEndpoint` | Payer's OAuth token URL                       |
+  | `clientId`      | Your registered client ID                     |
+  | `clientSecret`  | Your client secret                            |
+  | `oauthScope`    | Required scopes (e.g. `system/Claim.write`)   |
+
+  ## Finding the token endpoint
+  1. **Payer developer portal** — most common source
+  2. **Plan Net Endpoint extensions** — some payers publish it
+  3. **SMART well-known config** — `GET {fhirBaseUrl}/.well-known/smart-configuration`
+
+  ## Notes
+  - Some payers use `system/*.read system/Claim.write` as scope
+  - Token lifetime varies (typically 300–3600 seconds)
+  - If the token expires mid-session, just re-run this request
+  - Some payers require `Authorization: Basic {base64(clientId:secret)}`
+    header instead of form body — adjust as needed for your payer
+}

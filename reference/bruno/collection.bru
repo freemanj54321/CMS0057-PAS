@@ -1,0 +1,12 @@
+headers {
+  Content-Type: application/fhir+json
+  Accept: application/fhir+json
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
