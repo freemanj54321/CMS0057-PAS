@@ -1,0 +1,105 @@
+meta {
+  name: 4 - Lookup Insurance Plans
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{planNetBaseUrl}}/InsurancePlan?owned-by={{payerOrgId}}&status=active
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.entry && body.entry.length > 0) {
+    const plans = body.entry.map(e => e.resource);
+    
+    console.log("✅ Found " + plans.length + " active Insurance Plan(s):");
+    plans.forEach((plan, i) => {
+      const planType = (plan.type || [])
+        .flatMap(t => (t.coding || []).map(c => c.display || c.code))
+        .join(", ");
+      const networks = (plan.network || [])
+        .map(n => n.display || n.reference)
+        .join(", ");
+      const coverage = (plan.coverage || [])
+        .map(c => {
+          const type = (c.type && c.type.coding)
+            ? c.type.coding.map(cd => cd.display || cd.code).join(", ")
+            : "(unknown)";
+          return type;
+        })
+        .join("; ");
+      
+      console.log("  [" + i + "] " + (plan.name || plan.id));
+      console.log("      Type:     " + (planType || "(not specified)"));
+      console.log("      Networks: " + (networks || "(none listed)"));
+      console.log("      Coverage: " + (coverage || "(not detailed)"));
+      console.log("      ID:       " + plan.id);
+    });
+    
+    // Set first plan's ID for reference
+    bru.setVar("insurancePlanId", plans[0].id);
+    if (plans[0].name) {
+      bru.setVar("insurancePlanName", plans[0].name);
+    }
+  } else {
+    console.warn("⚠️  No active InsurancePlan found for Organization: " + bru.getVar("payerOrgId"));
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a FHIR Bundle", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("Bundle");
+  });
+}
+
+docs {
+  # Step 4 — Lookup Insurance Plans
+  
+  Queries the payer's published InsurancePlan resources to understand plan
+  types, covered benefits, and network structures. This is informational —
+  it helps you understand the payer's product landscape and can confirm
+  which plan a member is enrolled in.
+  
+  ## Search Parameters
+  | Parameter    | Value          | Purpose                          |
+  |--------------|----------------|----------------------------------|
+  | `owned-by`   | `{payerOrgId}` | Plans offered by this payer      |
+  | `status`     | `active`       | Only currently active plans      |
+  
+  ## Additional useful searches
+  
+  **Search by plan type:**
+  ```
+  GET /InsurancePlan?owned-by={payerOrgId}&type=medical
+  ```
+  
+  **Search by coverage area (state-level):**
+  ```
+  GET /InsurancePlan?coverage-area=Location/{stateLocationId}
+  ```
+  
+  **Include network details:**
+  ```
+  GET /InsurancePlan?owned-by={payerOrgId}&_include=InsurancePlan:owned-by
+  ```
+  
+  ## What gets set automatically
+  - `insurancePlanId` — first matched plan's resource ID
+  - `insurancePlanName` — first matched plan's name
+  
+  ## IG Profile
+  `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-InsurancePlan`
+}

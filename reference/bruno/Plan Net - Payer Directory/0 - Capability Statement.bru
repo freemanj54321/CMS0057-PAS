@@ -1,0 +1,92 @@
+meta {
+  name: 0 - Capability Statement
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{planNetBaseUrl}}/metadata
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.resourceType === "CapabilityStatement") {
+    console.log("✅ Plan Net Server Info:");
+    console.log("   Name:    " + (body.name || "(unnamed)"));
+    console.log("   Version: " + (body.fhirVersion || "unknown"));
+    console.log("   Status:  " + (body.status || "unknown"));
+    console.log("   URL:     " + (body.implementation ? body.implementation.url : "(not specified)"));
+    
+    // List supported resource types and their search params
+    const rest = (body.rest || [])[0];
+    if (rest && rest.resource) {
+      const planNetResources = [
+        "Organization", "Endpoint", "Practitioner", "PractitionerRole",
+        "HealthcareService", "InsurancePlan", "Location", "OrganizationAffiliation"
+      ];
+      
+      console.log("\n   Supported Plan Net Resources:");
+      rest.resource.forEach(r => {
+        if (planNetResources.includes(r.type)) {
+          const searchParams = (r.searchParam || []).map(sp => sp.name).join(", ");
+          console.log("     " + r.type);
+          if (searchParams) {
+            console.log("       Search: " + searchParams);
+          }
+        }
+      });
+    }
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a CapabilityStatement", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("CapabilityStatement");
+  });
+  
+  test("FHIR version is R4", function() {
+    const body = res.getBody();
+    expect(body.fhirVersion).to.equal("4.0.1");
+  });
+  
+  test("Supports Organization resource", function() {
+    const body = res.getBody();
+    const rest = (body.rest || [])[0];
+    const types = (rest.resource || []).map(r => r.type);
+    expect(types).to.include("Organization");
+  });
+}
+
+docs {
+  # Step 0 — Capability Statement
+  
+  Fetches the Plan Net server's CapabilityStatement to verify it's
+  reachable and inspect which resources and search parameters are
+  supported. Run this first to validate your `planNetBaseUrl`.
+  
+  ## What this tells you
+  - FHIR version (should be R4 / 4.0.1)
+  - Supported resource types (Organization, Endpoint, Practitioner, etc.)
+  - Available search parameters per resource
+  - Server name and implementation details
+  
+  ## Troubleshooting
+  - **404**: The base URL is wrong or the server doesn't expose `/metadata`
+  - **Non-R4 version**: You may need a different Plan Net endpoint
+  - **Missing resources**: The payer may not implement all Plan Net profiles
+  
+  ## FHIR Standard
+  `GET /metadata` — https://www.hl7.org/fhir/http.html#capabilities
+}

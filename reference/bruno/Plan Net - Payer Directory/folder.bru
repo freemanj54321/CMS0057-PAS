@@ -1,0 +1,36 @@
+meta {
+  name: Plan Net - Payer Directory
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+auth {
+  mode: none
+}
+
+docs {
+  # PDex Plan Net — Payer Directory Lookups (STU 1.2.0)
+  
+  These requests query the payer's **public, unauthenticated** Plan Net
+  directory to gather prerequisite data for the PAS $inquire Bundle:
+  
+  - **Payer Organization** — resolve the payer NPI to a canonical name + resource ID
+  - **Payer FHIR Endpoint** — discover the base URL for PAS / PDex operations
+  - **Provider in Network** — verify requesting provider is in the payer's network
+  - **Insurance Plans** — look up plan details and network affiliation
+  - **Healthcare Services** — check available services for prior auth scope
+  
+  ## Authentication
+  **None required.** Plan Net is a public directory API per CMS-0057.
+  
+  ## Environment Variables Used
+  - `planNetBaseUrl` — the payer's Plan Net FHIR endpoint (e.g., https://payer.example.com/fhir/plan-net)
+  - `payerNpi` — payer organization NPI
+  - `providerNpi` — requesting provider NPI
+  - `payerOrgId` — (set by Step 1 response) used in subsequent queries
+  
+  ## IG Reference
+  Da Vinci PDex Plan Net v1.2.0 — https://hl7.org/fhir/us/davinci-pdex-plan-net/STU1.1/
+}

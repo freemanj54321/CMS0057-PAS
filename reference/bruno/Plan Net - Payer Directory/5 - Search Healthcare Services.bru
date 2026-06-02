@@ -1,0 +1,97 @@
+meta {
+  name: 5 - Search Healthcare Services
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{planNetBaseUrl}}/HealthcareService?organization={{payerOrgId}}&_count=20
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.entry && body.entry.length > 0) {
+    const services = body.entry.map(e => e.resource);
+    
+    console.log("✅ Found " + services.length + " HealthcareService(s):");
+    services.forEach((svc, i) => {
+      const categories = (svc.category || [])
+        .flatMap(c => (c.coding || []).map(cd => cd.display || cd.code))
+        .join(", ");
+      const types = (svc.type || [])
+        .flatMap(t => (t.coding || []).map(cd => cd.display || cd.code))
+        .join(", ");
+      const specialties = (svc.specialty || [])
+        .flatMap(s => (s.coding || []).map(cd => cd.display || cd.code))
+        .join(", ");
+      
+      console.log("  [" + i + "] " + (svc.name || svc.id));
+      if (categories) console.log("      Category:  " + categories);
+      if (types) console.log("      Type:      " + types);
+      if (specialties) console.log("      Specialty: " + specialties);
+      console.log("      Active:    " + (svc.active !== false));
+    });
+  } else {
+    console.warn("⚠️  No HealthcareService found for Organization: " + bru.getVar("payerOrgId"));
+    console.warn("    Not all payers publish HealthcareService resources in Plan Net.");
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a FHIR Bundle", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("Bundle");
+  });
+}
+
+docs {
+  # Step 5 — Search Healthcare Services
+  
+  Lists services covered by the payer that may be relevant to prior auth.
+  HealthcareService resources indicate what services are available through
+  the payer's network, including categories and specialties.
+  
+  ## Search Parameters
+  | Parameter       | Value          | Purpose                         |
+  |-----------------|----------------|---------------------------------|
+  | `organization`  | `{payerOrgId}` | Services under this payer org   |
+  | `_count`        | `20`           | Limit results per page          |
+  
+  ## Additional useful searches
+  
+  **Filter by service category:**
+  ```
+  GET /HealthcareService?organization={payerOrgId}&service-category=outpatient
+  ```
+  
+  **Filter by specialty:**
+  ```
+  GET /HealthcareService?organization={payerOrgId}
+      &specialty=http://nucc.org/provider-taxonomy|207X00000X
+  ```
+  
+  **Search by coverage area:**
+  ```
+  GET /HealthcareService?coverage-area=Location/{locationId}
+  ```
+  
+  ## Context
+  This step is **informational** — it helps you understand what services
+  the payer covers and may give context on which service codes require
+  prior authorization. The actual productOrService codes for the $inquire
+  Bundle come from your clinical system / EHR order.
+  
+  ## IG Profile
+  `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-HealthcareService`
+}

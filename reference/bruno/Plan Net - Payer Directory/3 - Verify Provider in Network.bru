@@ -1,0 +1,121 @@
+meta {
+  name: 3 - Verify Provider in Network
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{planNetBaseUrl}}/Practitioner?identifier=http://hl7.org/fhir/sid/us-npi|{{providerNpi}}&_revinclude=PractitionerRole:practitioner
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  providerNpi: 1427227578
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.entry && body.entry.length > 0) {
+    // Separate Practitioner from PractitionerRole resources
+    const practitioners = body.entry
+      .filter(e => e.resource.resourceType === "Practitioner")
+      .map(e => e.resource);
+    const roles = body.entry
+      .filter(e => e.resource.resourceType === "PractitionerRole")
+      .map(e => e.resource);
+    
+    if (practitioners.length > 0) {
+      const prac = practitioners[0];
+      const name = prac.name && prac.name[0]
+        ? (prac.name[0].given || []).join(" ") + " " + (prac.name[0].family || "")
+        : "(no name)";
+      
+      bru.setVar("providerFhirId", prac.id);
+      
+      console.log("✅ Provider found in directory:");
+      console.log("   ID:   " + prac.id);
+      console.log("   Name: " + name.trim());
+      console.log("   NPI:  " + bru.getVar("providerNpi"));
+      
+      if (roles.length > 0) {
+        console.log("   Network Roles: " + roles.length);
+        roles.forEach((role, i) => {
+          const spec = (role.specialty || [])
+            .flatMap(s => (s.coding || []).map(c => c.display || c.code))
+            .join(", ");
+          const org = role.organization ? role.organization.display || role.organization.reference : "(unknown org)";
+          console.log("     [" + i + "] " + org + (spec ? " — " + spec : ""));
+        });
+      } else {
+        console.warn("   ⚠️  No PractitionerRole found — provider may not be in-network.");
+      }
+    }
+  } else {
+    console.warn("⚠️  Provider NPI " + bru.getVar("providerNpi") + " not found in Plan Net directory.");
+    console.warn("    This doesn't necessarily mean the request will fail,");
+    console.warn("    but the provider may not be recognized by this payer.");
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a FHIR Bundle", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("Bundle");
+  });
+  
+  test("At least one Practitioner returned", function() {
+    const body = res.getBody();
+    const practitioners = (body.entry || []).filter(
+      e => e.resource.resourceType === "Practitioner"
+    );
+    expect(practitioners).to.be.an("array").that.is.not.empty;
+  });
+}
+
+docs {
+  # Step 3 — Verify Provider in Network
+  
+  Confirms the requesting provider exists in the payer's Plan Net directory.
+  Uses `_revinclude` to also pull associated PractitionerRole resources,
+  which show network participation, specialties, and affiliated organizations.
+  
+  ## Search Parameters
+  | Parameter        | Value                                    | Purpose                        |
+  |------------------|------------------------------------------|--------------------------------|
+  | `identifier`     | `http://hl7.org/fhir/sid/us-npi\|{NPI}` | Match by NPI                   |
+  | `_revinclude`    | `PractitionerRole:practitioner`          | Include network role resources |
+  
+  ## What gets set automatically
+  - `providerFhirId` — the Practitioner resource ID in Plan Net
+  
+  ## Why this step matters
+  - Validates the provider is recognized **before** submitting an $inquire
+  - PractitionerRole resources confirm in-network status and specialty
+  - If no PractitionerRole is returned, the provider may be out-of-network
+    (which could affect authorization decisions)
+  
+  ## Optional — this step is recommended but not required
+  The PAS $inquire will still work without this validation, but an
+  unrecognized provider NPI may result in a rejection from the payer.
+  
+  ## Alternative: Search by Organization
+  To check your practice group instead of an individual provider:
+  ```
+  GET /Organization?identifier=http://hl7.org/fhir/sid/us-npi|{orgNpi}
+      &_revinclude=OrganizationAffiliation:participating-organization
+  ```
+  
+  ## IG Profiles
+  - `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Practitioner`
+  - `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-PractitionerRole`
+}

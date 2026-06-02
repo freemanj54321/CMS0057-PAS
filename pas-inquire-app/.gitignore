@@ -1,0 +1,16 @@
+# dependencies
+node_modules/
+
+# firebase
+.firebase/
+firebase-debug.log
+ui-debug.log
+functions/.env
+functions/.env.*
+
+# local runtime config (copy from firebaseConfig.example.js)
+public/js/firebaseConfig.js
+
+# os
+.DS_Store
+Thumbs.db

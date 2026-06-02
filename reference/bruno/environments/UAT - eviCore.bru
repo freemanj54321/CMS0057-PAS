@@ -1,0 +1,43 @@
+vars {
+  // ══════════════════════════════════════════════════════════════
+  //  UAT Environment — eviCore PAS $inquire (globals only)
+  //  Request-specific values live as local vars in each .bru file
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Endpoints ──────────────────────────────────────────────
+  planNetBaseUrl: https://evicorebrpoc.evicore.com/fhir/plan-net
+  baseUrl: https://evicorebrpoc.evicore.com/hi2br/pas
+
+  // ── OAuth ──────────────────────────────────────────────────
+  tokenEndpoint: https://evicorebrpoc.evicore.com/hi2br/auth/token
+  clientId: YOUR_CLIENT_ID
+  clientSecret: YOUR_CLIENT_SECRET
+  oauthScope: 
+
+  // ── Code Systems ───────────────────────────────────────────
+  priorAuthRefSystem: https://code.evicore.com/IOServiceRequestID
+  productOrServiceSystem: https://evicore.com/cpt
+  memberIdSystem: http://terminology.hl7.org/CodeSystem/v2-0203
+  diagnosisSystem: http://hl7.org/fhir/sid/icd-10-cm
+  placeOfServiceSystem: https://www.nubc.org/CodeSystem/TypeOfBill
+  itemTraceNumberSystem: https://tracking-itemSequence-None
+  encounterIdentifierSystem: https://emr.nucural.com/encounter-identifier
+  dtrQuestionnaireUrl: https://evicorebrpoc.evicore.com/hi2br/dtr/adaptive-questionnaire
+
+  // ── Auto-populated by chain (do not set manually) ──────────
+  ~accessToken: 
+  ~tokenExpiresAt: 
+  ~discoveredTokenEndpoint: 
+  ~payerFhirBaseUrl: 
+  ~payerOrgId: 
+  ~providerFhirId: 
+  ~insurancePlanId: 
+  ~insurancePlanName: 
+  ~lastClaimResponseId: 
+  ~lastClaimResponseOutcome: 
+  ~lastReviewActionCode: 
+  ~lastReviewNumber: 
+  ~isoTimestamp: 
+  ~inquiryDate: 
+  ~submitterTxnIdValue: 
+}

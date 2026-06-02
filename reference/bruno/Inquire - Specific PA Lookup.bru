@@ -1,0 +1,1161 @@
+meta {
+  name: Inquire - Specific PA Lookup
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{payerFhirBaseUrl}}/Claim/$inquire
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  memberIdValue: U1000774901
+  patientLastName: INDVBXERLY
+  patientFirstName: AJMEOARWN
+  patientGender: male
+  patientBirthDate: 1973-07-05
+  patientBirthSex: M
+  subscriberId: U1000774901
+  relationshipCode: self
+  coveragePlanName: BurdenReduction
+  providerNpi: 1427227578
+  providerTin: 540620889
+  providerOrgName: INOVA FAIRFAX HOSPITAL
+  providerAddressLine: 3300 GALLOWS RD
+  providerCity: FALLS CHURCH
+  providerState: VA
+  providerPostalCode: 22042
+  providerPhone: 7037764001
+  providerContactPhone: 5747646736
+  practitionerNpi: 9999999999
+  practitionerLastName: Garudwar
+  practitionerFirstName: Sainath
+  practitionerEmail: sainath.garudwar@evicore.com
+  practitionerPhone: 9028813347
+  payerOrgName: CIGNA
+  payerIdentifierValue: 11060
+  managingOrgNpi: 1053609073
+  managingOrgName: EVICORE ORG
+  managingOrgAddressLine: 123 Main Street
+  managingOrgCity: Franklin
+  managingOrgState: TN
+  managingOrgPostalCode: 38305
+  managingOrgPhone: +1 (650) 555-0111
+  priorAuthRefNumber: A251852874
+  submitterTxnIdSystem: urn:trnorg:5
+  productOrServiceCode: 37799
+  productOrServiceDisplay: Unlisted, non-specific code for phlebectomy fewer than 10 incisions
+  diagnosisCode: M62.81
+  diagnosisDisplay: Muscle weakness (generalized)
+  claimTypeCode: institutional
+  serviceItemRequestTypeCode: HS
+  serviceCategoryCode: 1
+  serviceCategoryDisplay: Medical Care
+  placeOfServiceCode: 32
+  placeOfServiceDisplay: Hospital Outpatient Surgery performed in an Ambulatory Surgical Center
+  encounterStartDateTime: 2025-11-18T13:46:08Z
+}
+
+headers {
+  content-type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  function uuid() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+  }
+
+  bru.setVar("claimUuid", uuid());
+  bru.setVar("coverageUuid", uuid());
+  bru.setVar("encounterUuid", uuid());
+  bru.setVar("patientUuid", uuid());
+  bru.setVar("serviceRequestUuid", uuid());
+  bru.setVar("requestorOrgUuid", uuid());
+  bru.setVar("conditionUuid", uuid());
+  bru.setVar("insurerOrgUuid", uuid());
+  bru.setVar("practitionerRoleUuid", uuid());
+  bru.setVar("practitionerUuid", uuid());
+  bru.setVar("managingOrgUuid", uuid());
+
+  const now = new Date();
+  bru.setVar("isoTimestamp", now.toISOString());
+  bru.setVar("inquiryDate", now.toISOString().split("T")[0]);
+
+  const existingTxnId = bru.getVar("submitterTxnIdValue");
+  if (!existingTxnId || existingTxnId === "auto") {
+    const counter = String(Date.now()).slice(-6);
+    bru.setVar("submitterTxnIdValue", "INQ-" + now.getFullYear() + "-" + counter);
+  }
+
+  const encStart = bru.getVar("encounterStartDateTime");
+  if (!encStart) {
+    bru.setVar("encounterStartDateTime", now.toISOString().replace(/\.\d+Z$/, "Z"));
+  }
+
+  const discovered = bru.getVar("payerFhirBaseUrl");
+  const manual = bru.getEnvVar("baseUrl");
+  if (discovered) {
+    console.log("🔗 Using discovered PAS endpoint: " + discovered);
+  } else if (manual) {
+    bru.setVar("payerFhirBaseUrl", manual);
+    console.log("ℹ️  Using manual baseUrl: " + manual);
+  } else {
+    console.error("❌ No PAS endpoint URL available.");
+    console.error("   Set baseUrl in environment OR run Plan Net Step 1 → 2.");
+  }
+
+  const token = bru.getVar("accessToken");
+  if (!token || token === "YOUR_OAUTH2_BEARER_TOKEN") {
+    console.warn("⚠️  No access token set. Run OAuth request first.");
+  } else {
+    const expiresAt = bru.getVar("tokenExpiresAt");
+    if (expiresAt && new Date(expiresAt) < new Date()) {
+      console.warn("⚠️  Token may have expired (" + expiresAt + "). Re-run OAuth.");
+    }
+  }
+
+  console.log("📋 Specific PA Lookup:");
+  console.log("   PA Ref #:    " + (bru.getVar("priorAuthRefNumber") || "(not set)"));
+  console.log("   Payer:       " + (bru.getVar("payerOrgName") || "(not set)"));
+  console.log("   Provider:    " + (bru.getVar("providerOrgName") || "(not set)") + " (NPI: " + (bru.getVar("providerNpi") || "?") + ")");
+  console.log("   Practitioner:" + (bru.getVar("practitionerLastName") || "(not set)") + ", " + (bru.getVar("practitionerFirstName") || ""));
+  console.log("   Patient:     " + (bru.getVar("patientLastName") || "(not set)") + ", " + (bru.getVar("patientFirstName") || ""));
+  console.log("   Member ID:   " + (bru.getVar("memberIdValue") || "(not set)"));
+  console.log("   Dx:          " + (bru.getVar("diagnosisCode") || "(not set)") + " - " + (bru.getVar("diagnosisDisplay") || ""));
+  console.log("   CPT:         " + (bru.getVar("productOrServiceCode") || "(not set)"));
+  console.log("   Inquiry Date:" + bru.getVar("inquiryDate"));
+  console.log("   Txn ID:      " + bru.getVar("submitterTxnIdValue"));
+}
+
+body:json {
+  {
+    "id": "searchset",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-pas-request-bundle"
+      ]
+    },
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:{{claimUuid}}",
+        "resource": {
+          "id": "{{claimUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-inquiry"
+            ]
+          },
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/5.0/StructureDefinition/extension-Claim.encounter",
+              "valueReference": {
+                "reference": "Encounter/{{encounterUuid}}"
+              }
+            }
+          ],
+          "careTeam": [
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-careTeamClaimScope",
+                  "valueBoolean": true
+                }
+              ],
+              "provider": {
+                "reference": "Organization/{{requestorOrgUuid}}"
+              },
+              "role": {
+                "coding": [
+                  {
+                    "code": "FA",
+                    "display": "Facility",
+                    "system": "https://codesystem.x12.org/005010/98"
+                  }
+                ],
+                "text": "Facility"
+              },
+              "sequence": 1
+            },
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-careTeamClaimScope",
+                  "valueBoolean": true
+                }
+              ],
+              "provider": {
+                "reference": "PractitionerRole/{{practitionerRoleUuid}}"
+              },
+              "role": {
+                "coding": [
+                  {
+                    "code": "71",
+                    "display": "Attending Physician",
+                    "system": "https://codesystem.x12.org/005010/98"
+                  }
+                ],
+                "text": "Attending Physician"
+              },
+              "sequence": 2
+            }
+          ],
+          "created": "{{inquiryDate}}",
+          "diagnosis": [
+            {
+              "diagnosisCodeableConcept": {
+                "coding": [
+                  {
+                    "code": "{{diagnosisCode}}",
+                    "display": "{{diagnosisDisplay}}",
+                    "system": "{{diagnosisSystem}}"
+                  }
+                ],
+                "text": "{{diagnosisDisplay}}"
+              },
+              "sequence": 1
+            }
+          ],
+          "enterer": {
+            "reference": "Practitioner/{{practitionerUuid}}"
+          },
+          "identifier": [
+            {
+              "system": "{{submitterTxnIdSystem}}",
+              "use": "usual",
+              "value": "{{submitterTxnIdValue}}"
+            }
+          ],
+          "insurance": [
+            {
+              "coverage": {
+                "reference": "Coverage/{{coverageUuid}}"
+              },
+              "focal": true,
+              "sequence": 1
+            }
+          ],
+          "insurer": {
+            "reference": "Organization/{{insurerOrgUuid}}"
+          },
+          "item": [
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-serviceItemRequestType",
+                  "valueCodeableConcept": {
+                    "coding": [
+                      {
+                        "code": "{{serviceItemRequestTypeCode}}",
+                        "display": "Health Services Review",
+                        "system": "https://codesystem.x12.org/005010/1525"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-administrationReferenceNumber",
+                  "valueString": "{{priorAuthRefNumber}}"
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-requestedService",
+                  "valueReference": {
+                    "reference": "ServiceRequest/{{serviceRequestUuid}}"
+                  }
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber",
+                  "valueIdentifier": {
+                    "system": "{{itemTraceNumberSystem}}",
+                    "value": "{{submitterTxnIdValue}}"
+                  }
+                }
+              ],
+              "careTeamSequence": [
+                1,
+                2
+              ],
+              "category": {
+                "coding": [
+                  {
+                    "code": "{{serviceCategoryCode}}",
+                    "display": "{{serviceCategoryDisplay}}",
+                    "system": "https://codesystem.x12.org/005010/1365"
+                  }
+                ],
+                "text": "{{serviceCategoryDisplay}}"
+              },
+              "diagnosisSequence": [
+                1
+              ],
+              "locationCodeableConcept": {
+                "coding": [
+                  {
+                    "code": "{{placeOfServiceCode}}",
+                    "display": "{{placeOfServiceDisplay}}",
+                    "system": "{{placeOfServiceSystem}}"
+                  }
+                ],
+                "text": "{{placeOfServiceDisplay}}"
+              },
+              "productOrService": {
+                "coding": [
+                  {
+                    "code": "{{productOrServiceCode}}",
+                    "display": "{{productOrServiceDisplay}}",
+                    "system": "{{productOrServiceSystem}}"
+                  }
+                ],
+                "text": "{{productOrServiceDisplay}}"
+              },
+              "quantity": {
+                "code": "1",
+                "system": "http://unitsofmeasure.org",
+                "unit": "unit",
+                "value": 1
+              },
+              "sequence": 1
+            }
+          ],
+          "patient": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "priority": {
+            "coding": [
+              {
+                "code": "normal",
+                "display": "Normal",
+                "system": "http://terminology.hl7.org/CodeSystem/processpriority"
+              }
+            ],
+            "text": "Normal"
+          },
+          "provider": {
+            "reference": "Organization/{{requestorOrgUuid}}"
+          },
+          "status": "active",
+          "type": {
+            "coding": [
+              {
+                "code": "{{claimTypeCode}}",
+                "display": "Institutional",
+                "system": "http://terminology.hl7.org/CodeSystem/claim-type"
+              }
+            ],
+            "text": "Institutional"
+          },
+          "use": "preauthorization",
+          "resourceType": "Claim"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{coverageUuid}}",
+        "resource": {
+          "id": "{{coverageUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-coverage"
+            ]
+          },
+          "beneficiary": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "class": [
+            {
+              "name": "{{coveragePlanName}}",
+              "type": {
+                "coding": [
+                  {
+                    "code": "plan",
+                    "display": "Plan",
+                    "system": "http://terminology.hl7.org/CodeSystem/coverage-class"
+                  }
+                ],
+                "text": "Plan"
+              },
+              "value": "{{coveragePlanName}}"
+            }
+          ],
+          "identifier": [
+            {
+              "system": "{{memberIdSystem}}",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MB",
+                    "display": "Member Match Identifier",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Coverage Identifier"
+              },
+              "use": "official",
+              "value": "{{memberIdValue}}"
+            }
+          ],
+          "payor": [
+            {
+              "reference": "Organization/{{insurerOrgUuid}}"
+            }
+          ],
+          "relationship": {
+            "coding": [
+              {
+                "code": "{{relationshipCode}}",
+                "display": "Self",
+                "system": "http://terminology.hl7.org/CodeSystem/subscriber-relationship"
+              }
+            ],
+            "text": "Self"
+          },
+          "status": "active",
+          "subscriber": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "subscriberId": "{{subscriberId}}",
+          "type": {
+            "coding": [
+              {
+                "code": "12345",
+                "display": "Primary",
+                "system": "http://snomed.info/sct"
+              }
+            ],
+            "text": "Primary"
+          },
+          "resourceType": "Coverage"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{encounterUuid}}",
+        "resource": {
+          "id": "{{encounterUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+            ]
+          },
+          "class": {
+            "code": "AMB",
+            "display": "Ambulatory",
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+          },
+          "diagnosis": [
+            {
+              "condition": {
+                "reference": "Condition/{{conditionUuid}}"
+              }
+            }
+          ],
+          "identifier": [
+            {
+              "system": "{{encounterIdentifierSystem}}",
+              "use": "official",
+              "value": "{{encounterUuid}}"
+            }
+          ],
+          "participant": [
+            {
+              "individual": {
+                "reference": "Practitioner/{{practitionerUuid}}"
+              },
+              "period": {
+                "start": "{{encounterStartDateTime}}"
+              },
+              "type": [
+                {
+                  "coding": [
+                    {
+                      "code": "ADM",
+                      "display": "admitter",
+                      "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "period": {
+            "start": "{{encounterStartDateTime}}"
+          },
+          "serviceProvider": {
+            "reference": "Organization/{{requestorOrgUuid}}"
+          },
+          "status": "in-progress",
+          "subject": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "2",
+                  "display": "Established",
+                  "system": "http://snomed.info/sct"
+                }
+              ],
+              "text": "Established"
+            }
+          ],
+          "resourceType": "Encounter"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{patientUuid}}",
+        "resource": {
+          "id": "{{patientUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-beneficiary"
+            ]
+          },
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
+              "valueCode": "{{patientBirthSex}}"
+            }
+          ],
+          "active": true,
+          "birthDate": "{{patientBirthDate}}",
+          "communication": [
+            {
+              "language": {
+                "coding": [
+                  {
+                    "code": "en-US",
+                    "display": "English (United States)",
+                    "system": "urn:ietf:bcp:47"
+                  }
+                ],
+                "text": "English (United States)"
+              }
+            }
+          ],
+          "gender": "{{patientGender}}",
+          "identifier": [
+            {
+              "system": "{{memberIdSystem}}",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MB",
+                    "display": "Member Match Identifier",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Member Match Identifier"
+              },
+              "use": "official",
+              "value": "{{memberIdValue}}"
+            },
+            {
+              "system": "http://example.org/cdex/payer/member-ids",
+              "type": {
+                "coding": [
+                  {
+                    "code": "UMB",
+                    "display": "Member Number",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Member Number"
+              },
+              "use": "official",
+              "value": "{{memberIdValue}}"
+            },
+            {
+              "system": "http://hospital.smarthealthit.org",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MR",
+                    "display": "Medical record number",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Medical Record Number"
+              },
+              "use": "official",
+              "value": "{{memberIdValue}}"
+            }
+          ],
+          "managingOrganization": {
+            "reference": "Organization/{{managingOrgUuid}}"
+          },
+          "name": [
+            {
+              "family": "{{patientLastName}}",
+              "given": [
+                "{{patientFirstName}}"
+              ],
+              "use": "official"
+            }
+          ],
+          "resourceType": "Patient"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{serviceRequestUuid}}",
+        "resource": {
+          "id": "{{serviceRequestUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-servicerequest"
+            ]
+          },
+          "extension": [
+            {
+              "extension": [
+                {
+                  "url": "doc-needed",
+                  "valueCode": "clinical"
+                },
+                {
+                  "url": "questionnaire",
+                  "valueCanonical": "{{dtrQuestionnaireUrl}}"
+                },
+                {
+                  "url": "date",
+                  "valueDateTime": "{{encounterStartDateTime}}"
+                },
+                {
+                  "url": "coverage",
+                  "valueReference": {
+                    "reference": "Coverage/{{coverageUuid}}"
+                  }
+                },
+                {
+                  "url": "covered",
+                  "valueCode": "covered"
+                },
+                {
+                  "url": "pa-needed",
+                  "valueCode": "auth-needed"
+                }
+              ],
+              "url": "http://hl7.org/fhir/us/davinci-crd/StructureDefinition/ext-coverage-information"
+            }
+          ],
+          "authoredOn": "{{inquiryDate}}",
+          "code": {
+            "coding": [
+              {
+                "code": "{{productOrServiceCode}}",
+                "display": "{{productOrServiceDisplay}}",
+                "system": "{{productOrServiceSystem}}"
+              }
+            ],
+            "text": "{{productOrServiceDisplay}}"
+          },
+          "encounter": {
+            "reference": "Encounter/{{encounterUuid}}"
+          },
+          "insurance": [
+            {
+              "reference": "Coverage/{{coverageUuid}}"
+            }
+          ],
+          "intent": "order",
+          "performer": [
+            {
+              "reference": "Organization/{{requestorOrgUuid}}"
+            }
+          ],
+          "priority": "routine",
+          "quantityQuantity": {
+            "code": "kg",
+            "system": "http://unitsofmeasure.org",
+            "unit": "kg's",
+            "value": 1
+          },
+          "reasonReference": [
+            {
+              "reference": "Condition/{{conditionUuid}}"
+            }
+          ],
+          "requester": {
+            "reference": "PractitionerRole/{{practitionerRoleUuid}}"
+          },
+          "status": "active",
+          "subject": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "resourceType": "ServiceRequest"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{requestorOrgUuid}}",
+        "resource": {
+          "id": "{{requestorOrgUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-requestor"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "city": "{{providerCity}}",
+              "country": "US",
+              "line": [
+                "{{providerAddressLine}}"
+              ],
+              "postalCode": "{{providerPostalCode}}",
+              "state": "{{providerState}}"
+            }
+          ],
+          "contact": [
+            {
+              "address": {
+                "country": "US"
+              },
+              "name": {
+                "family": "{{providerOrgName}}"
+              },
+              "telecom": [
+                {
+                  "system": "phone",
+                  "value": "{{providerContactPhone}}"
+                }
+              ]
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "use": "official",
+              "value": "{{providerNpi}}"
+            },
+            {
+              "system": "urn:oid:2.16.840.1.113883.4.4",
+              "use": "official",
+              "value": "{{providerTin}}"
+            }
+          ],
+          "name": "{{providerOrgName}}",
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "{{providerPhone}}"
+            }
+          ],
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "prov",
+                  "display": "Healthcare Provider",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Healthcare Provider"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{conditionUuid}}",
+        "resource": {
+          "id": "{{conditionUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns"
+            ]
+          },
+          "clinicalStatus": {
+            "coding": [
+              {
+                "code": "active",
+                "display": "Active",
+                "system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+              }
+            ],
+            "text": "Active"
+          },
+          "code": {
+            "coding": [
+              {
+                "code": "{{diagnosisCode}}",
+                "display": "{{diagnosisDisplay}}",
+                "system": "{{diagnosisSystem}}"
+              }
+            ],
+            "text": "{{diagnosisDisplay}}"
+          },
+          "encounter": {
+            "reference": "Encounter/{{encounterUuid}}"
+          },
+          "onsetDateTime": "{{encounterStartDateTime}}",
+          "subject": {
+            "reference": "Patient/{{patientUuid}}"
+          },
+          "verificationStatus": {
+            "coding": [
+              {
+                "code": "confirmed",
+                "display": "Confirmed",
+                "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+              }
+            ],
+            "text": "Confirmed"
+          },
+          "resourceType": "Condition"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{insurerOrgUuid}}",
+        "resource": {
+          "id": "{{insurerOrgUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-insurer"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "country": "US"
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://sid/us-insurer-id",
+              "type": {
+                "coding": [
+                  {
+                    "code": "NIIP",
+                    "display": "National Insurance Payor Identifier (Payor)",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "National Insurance Payor Identifier (Payor)"
+              },
+              "use": "official",
+              "value": "{{payerIdentifierValue}}"
+            },
+            {
+              "system": "http://sid/us-insurer-code",
+              "type": {
+                "coding": [
+                  {
+                    "code": "NIIP",
+                    "display": "National Insurance Payor Identifier (Payor)",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "National Insurance Payor Identifier (Payor)"
+              },
+              "use": "official",
+              "value": "{{payerIdentifierValue}}"
+            }
+          ],
+          "name": "{{payerOrgName}}",
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "pay",
+                  "display": "Payer",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Payer"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{practitionerRoleUuid}}",
+        "resource": {
+          "id": "{{practitionerRoleUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitionerrole"
+            ]
+          },
+          "active": true,
+          "organization": {
+            "reference": "Organization/{{requestorOrgUuid}}"
+          },
+          "practitioner": {
+            "reference": "Practitioner/{{practitionerUuid}}"
+          },
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "{{practitionerPhone}}"
+            }
+          ],
+          "resourceType": "PractitionerRole"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{practitionerUuid}}",
+        "resource": {
+          "id": "{{practitionerUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-practitioner"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "country": "US"
+            }
+          ],
+          "gender": "male",
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "value": "{{practitionerNpi}}"
+            }
+          ],
+          "name": [
+            {
+              "family": "{{practitionerLastName}}",
+              "given": [
+                "{{practitionerFirstName}}"
+              ]
+            }
+          ],
+          "telecom": [
+            {
+              "system": "email",
+              "value": "{{practitionerEmail}}"
+            }
+          ],
+          "resourceType": "Practitioner"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:{{managingOrgUuid}}",
+        "resource": {
+          "id": "{{managingOrgUuid}}",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-organization"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "city": "{{managingOrgCity}}",
+              "country": "US",
+              "line": [
+                "{{managingOrgAddressLine}}"
+              ],
+              "postalCode": "{{managingOrgPostalCode}}",
+              "state": "{{managingOrgState}}"
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "use": "official",
+              "value": "{{managingOrgNpi}}"
+            }
+          ],
+          "name": "{{managingOrgName}}",
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "{{managingOrgPhone}}"
+            }
+          ],
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "prov",
+                  "display": "Healthcare Provider",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Healthcare Provider"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      }
+    ],
+    "link": [
+      {
+        "relation": "self",
+        "url": "{{payerFhirBaseUrl}}/Claim?_id={{claimUuid}}&_include=*"
+      }
+    ],
+    "total": 1,
+    "type": "searchset",
+    "resourceType": "Bundle"
+  }
+}
+
+script:post-response {
+  const status = res.getStatus();
+  const body = res.getBody();
+
+  if (status === 200 && body && body.resourceType === "Bundle") {
+    const claimResponses = (body.entry || [])
+      .filter(e => e.resource && e.resource.resourceType === "ClaimResponse")
+      .map(e => e.resource);
+
+    if (claimResponses.length === 0) {
+      console.log("ℹ️  No matching authorizations found.");
+      return;
+    }
+
+    console.log("✅ Found " + claimResponses.length + " authorization(s):");
+
+    claimResponses.forEach((cr, idx) => {
+      console.log("\n  ─── Authorization " + (idx + 1) + " ───");
+      console.log("  ClaimResponse ID: " + (cr.id || "(none)"));
+      console.log("  Outcome:          " + (cr.outcome || "(unknown)"));
+      console.log("  Disposition:      " + (cr.disposition || "(none)"));
+
+      // Extract identifiers (Service Request ID, Case Number, Claim Identifier)
+      (cr.identifier || []).forEach(ident => {
+        const label = (ident.type && ident.type.text) || ident.system || "";
+        console.log("  Identifier:       " + label + " = " + (ident.value || ""));
+      });
+
+      // Store first response for downstream
+      if (idx === 0 && cr.id) {
+        bru.setVar("lastClaimResponseId", cr.id);
+        bru.setVar("lastClaimResponseOutcome", cr.outcome || "");
+      }
+
+      // Parse request reference (points back to original Claim)
+      if (cr.request && cr.request.reference) {
+        console.log("  Request ref:      " + cr.request.reference);
+      }
+
+      // Parse top-level adjudication (overall review action)
+      (cr.adjudication || []).forEach(adj => {
+        // Handle nested reviewAction complex extension
+        const reviewActionExt = (adj.extension || []).find(ext =>
+          ext.url && ext.url.includes("extension-reviewAction") &&
+          !ext.url.includes("reviewActionCode")
+        );
+        if (reviewActionExt && reviewActionExt.extension) {
+          const codeExt = (reviewActionExt.extension || []).find(e =>
+            e.url && e.url.includes("reviewActionCode")
+          );
+          if (codeExt && codeExt.valueCodeableConcept) {
+            const coding = (codeExt.valueCodeableConcept.coding || [])[0] || {};
+            const code = coding.code || "";
+            const codeMap = {
+              "A1": "✅ Certified",
+              "A2": "⚠️  Modified",
+              "A3": "❌ Denied",
+              "A4": "⏳ Pended",
+              "A6": "🚫 Cancelled",
+              "CT": "📞 Contact Payer"
+            };
+            console.log("  Overall Action:   " + (codeMap[code] || code) + " (" + (coding.display || "") + ")");
+            if (idx === 0) bru.setVar("lastReviewActionCode", code);
+          }
+        }
+      });
+
+      // Parse item-level adjudication
+      (cr.item || []).forEach((item) => {
+        console.log("  Item " + item.itemSequence + ":");
+
+        // Item-level extensions
+        (item.extension || []).forEach(ext => {
+          if (ext.url && ext.url.includes("administrationReferenceNumber")) {
+            console.log("    Admin Ref #:  " + ext.valueString);
+            if (idx === 0) bru.setVar("lastReviewNumber", ext.valueString);
+          }
+          if (ext.url && ext.url.includes("communicatedDiagnosis") && ext.valueCodeableConcept) {
+            const dx = (ext.valueCodeableConcept.coding || [])[0] || {};
+            console.log("    Diagnosis:    " + (dx.code || "") + " - " + (dx.display || ""));
+          }
+          if (ext.url && ext.url.includes("itemAuthorizedDetail") && ext.extension) {
+            const svcExt = (ext.extension || []).find(e => e.url === "productOrServiceCode");
+            if (svcExt && svcExt.valueCodeableConcept) {
+              const svc = (svcExt.valueCodeableConcept.coding || [])[0] || {};
+              console.log("    Auth'd CPT:   " + (svc.code || "") + " - " + (svc.text || svcExt.valueCodeableConcept.text || ""));
+            }
+          }
+        });
+
+        // Item adjudication
+        (item.adjudication || []).forEach(adj => {
+          const cat = ((adj.category || {}).coding || [])[0] || {};
+          console.log("    Adjudication:  " + (cat.code || "(unknown)"));
+        });
+      });
+    });
+
+    // Check for CommunicationRequests (payer needs more info)
+    const commReqs = (body.entry || [])
+      .filter(e => e.resource && e.resource.resourceType === "CommunicationRequest");
+    if (commReqs.length > 0) {
+      console.log("\n  📨 " + commReqs.length + " CommunicationRequest(s) — payer needs additional info");
+    }
+
+    console.log("\n  ── Stored for downstream ──");
+    console.log("  lastClaimResponseId:      " + (bru.getVar("lastClaimResponseId") || "(none)"));
+    console.log("  lastClaimResponseOutcome:  " + (bru.getVar("lastClaimResponseOutcome") || "(none)"));
+    console.log("  lastReviewActionCode:      " + (bru.getVar("lastReviewActionCode") || "(none)"));
+    console.log("  lastReviewNumber:          " + (bru.getVar("lastReviewNumber") || "(none)"));
+
+  } else if (status !== 200) {
+    console.error("❌ $inquire failed (HTTP " + status + ")");
+    if (body && body.resourceType === "OperationOutcome") {
+      (body.issue || []).forEach(issue => {
+        console.error("   [" + issue.severity + "] " + (issue.diagnostics || issue.code));
+      });
+    }
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}
+
+docs {
+  # Inquire - Specific PA Lookup
+  
+  Queries a specific prior authorization by its payer-assigned reference number
+  (`administrationReferenceNumber` on item extension). Uses the full resource
+  graph required by eviCore's UAT environment.
+  
+  ## What makes this "specific"
+  The `priorAuthRefNumber` local variable populates the
+  `extension-administrationReferenceNumber` on the Claim item, which is how
+  eviCore matches to a single authorization. Change this value to look up
+  a different PA.
+  
+  ## Key variables to set
+  - `priorAuthRefNumber` — the payer-assigned PA number (e.g. A251852874)
+  - `memberIdValue` — patient's member ID
+  - `providerNpi` / `providerOrgName` — requesting facility
+  - `practitionerNpi` / `practitionerLastName` — attending physician
+  - `diagnosisCode` / `productOrServiceCode` — clinical details
+  
+  ## eviCore requirements (lessons learned)
+  - Bundle must be `searchset` type with `profile-pas-request-bundle`
+  - Header must be `content-type: application/json` (not `application/fhir+json`)
+  - Insurer identified by NIIP code, not NPI
+  - Requestor needs both NPI and TIN identifiers
+  - PA ref goes on `item.extension[administrationReferenceNumber]`, NOT `Claim.identifier`
+  - Full resource graph required: Encounter, Condition, ServiceRequest, 
+    PractitionerRole, Practitioner, Managing Org, CareTeam (FA + 71)
+  
+  ## IG Reference
+  Da Vinci PAS v2.0.1 (STU 2) — http://hl7.org/fhir/us/davinci-pas/STU2/
+}

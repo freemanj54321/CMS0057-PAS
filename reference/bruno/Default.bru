@@ -1,0 +1,106 @@
+vars {
+  // ══════════════════════════════════════════════════════════════
+  //  Default Environment — PAS $inquire Collection
+  //  Covers both simplified templates and Full Bundle (UAT) request
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Payer Directory (Plan Net) ──────────────────────────────
+  planNetBaseUrl: https://payer.example.com/fhir/plan-net
+
+  // ── PAS FHIR base URL (used if Plan Net discovery is skipped)
+  baseUrl: https://payer.example.com/fhir/R4
+
+  // ── OAuth Configuration ────────────────────────────────────
+  tokenEndpoint: https://payer.example.com/oauth2/token
+  clientId: YOUR_CLIENT_ID
+  clientSecret: YOUR_CLIENT_SECRET
+  oauthScope: system/Claim.write system/Claim.read
+
+  // ── Patient / Member ───────────────────────────────────────
+  memberIdSystem: https://payer.example.com/member-ids
+  memberIdValue: MBR-12345678901
+  patientLastName: SMITH
+  patientFirstName: JOE
+  patientGender: male
+  patientBirthDate: 1990-01-15
+  patientBirthSex: M
+  subscriberId: 1122334455
+  relationshipCode: self
+  coveragePlanName: StandardPlan
+
+  // ── Requestor Organization (Facility) ──────────────────────
+  providerNpi: 8189991234
+  providerTin: 123456789
+  providerOrgName: DR. SMITH MEDICAL GROUP
+  providerAddressLine: 100 MEDICAL DRIVE
+  providerCity: ANYTOWN
+  providerState: VA
+  providerPostalCode: 20000
+  providerPhone: 5551234567
+  providerContactPhone: 5551234567
+
+  // ── Attending Practitioner ─────────────────────────────────
+  practitionerNpi: 1234567890
+  practitionerLastName: DOE
+  practitionerFirstName: JANE
+  practitionerEmail: jane.doe@medical.example.com
+  practitionerPhone: 5559876543
+
+  // ── Payer (Insurer) ────────────────────────────────────────
+  payerNpi: 1234567893
+  payerOrgName: ACME HEALTH INSURANCE
+  payerIdentifierValue: 99999
+
+  // ── Managing Organization ──────────────────────────────────
+  managingOrgNpi: 9876543210
+  managingOrgName: HEALTH SYSTEM INC
+  managingOrgAddressLine: 200 HEALTH BLVD
+  managingOrgCity: FRANKLIN
+  managingOrgState: TN
+  managingOrgPostalCode: 38305
+  managingOrgPhone: 5555550111
+
+  // ── Inquiry Parameters ─────────────────────────────────────
+  priorAuthRefSystem: https://payer.example.com/prior-auth
+  priorAuthRefNumber: AUTH-987654
+  submitterTxnIdSystem: https://yourorg.com/transaction-ids
+  productOrServiceSystem: http://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets
+  productOrServiceCode: G0154
+  productOrServiceDisplay: Services of a clinical social worker
+  diagnosisSystem: http://hl7.org/fhir/sid/icd-10-cm
+  diagnosisCode: F32.1
+  diagnosisDisplay: Major depressive disorder, single episode, moderate
+  claimTypeCode: professional
+  serviceItemRequestTypeCode: HS
+  certificationTypeCode: I
+
+  // ── Service Item Details ───────────────────────────────────
+  serviceCategoryCode: 1
+  serviceCategoryDisplay: Medical Care
+  placeOfServiceCode: 11
+  placeOfServiceDisplay: Office
+  placeOfServiceSystem: https://www.cms.gov/Medicare/Coding/place-of-service-codes/Place_of_Service_Code_Set
+  itemTraceNumberSystem: https://yourorg.com/trace-numbers
+
+  // ── Encounter / ServiceRequest (Full Bundle only) ──────────
+  encounterIdentifierSystem: https://emr.example.com/encounter-identifier
+  encounterStartDateTime: 2025-01-15T10:00:00Z
+  dtrQuestionnaireUrl: https://payer.example.com/dtr/adaptive-questionnaire
+
+  // ── Auto-populated by chain (do not set manually) ──────────
+  ~accessToken: YOUR_OAUTH2_BEARER_TOKEN
+  ~tokenExpiresAt: 
+  ~discoveredTokenEndpoint: 
+  ~payerFhirBaseUrl: 
+  ~payerOrgId: 
+  ~providerFhirId: 
+  ~insurancePlanId: 
+  ~insurancePlanName: 
+  ~lastClaimResponseId: 
+  ~lastClaimResponseOutcome: 
+  ~lastReviewActionCode: 
+  ~lastReviewNumber: 
+  ~isoTimestamp: 
+  ~inquiryDate: 
+  ~submitterTxnIdValue: auto
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PAS $inquire Tester</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+
+  <!-- Resolving auth state (redirects to login.html if signed out) -->
+  <div id="loading" class="gate">
+    <div class="gate-card">
+      <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true" style="animation:spin 1s linear infinite">
+        <path d="M10 2v3M10 15v3M3.5 3.5l2.1 2.1M14.4 14.4l2.1 2.1M2 10h3M15 10h3M3.5 16.5l2.1-2.1M14.4 5.6l2.1-2.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <p>Loading…</p>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div id="app" hidden>
+    <header>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M6 10h8M10 6v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <h1>PAS $inquire Tester</h1>
+      <span class="subtitle" id="userEmail"></span>
+      <button class="btn btn-sm" id="signOutBtn">Sign out</button>
+    </header>
+
+    <div class="layout">
+      <!-- Sidebar: variables + runtime -->
+      <aside class="sidebar">
+        <div class="section-label">Variables</div>
+        <div id="varsPanel"></div>
+        <details>
+          <summary>Runtime (chained) variables</summary>
+          <div id="runtimePanel" class="runtime"></div>
+        </details>
+      </aside>
+
+      <!-- Main: tests + detail -->
+      <main class="main">
+        <div class="toolbar">
+          <button class="btn btn-primary" id="runAllBtn">Run all (in order)</button>
+          <button class="btn btn-sm" id="resetRuntimeBtn">Clear runtime vars</button>
+        </div>
+        <div class="split">
+          <div class="test-pane"><div id="testList"></div></div>
+          <div class="detail-pane"><div id="detail"></div></div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

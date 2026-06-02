@@ -1,0 +1,933 @@
+meta {
+  name: PAS $Inquire
+  type: http
+  seq: 6
+}
+
+post {
+  url: https://evicorebrpoc.evicore.com/hi2br/pas/Claim/$inquire
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+}
+
+auth:bearer {
+  token: YOUR_OAUTH2_BEARER_TOKEN
+}
+
+body:json {
+  {
+    "id": "searchset",
+    "meta": {
+      "profile": [
+        "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-pas-request-bundle"
+      ]
+    },
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:1430251e-c485-11f0-ac6b-0a2d94f3c43f",
+        "resource": {
+        "id": "1430251e-c485-11f0-ac6b-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-claim-inquiry"
+            ]
+          },
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/5.0/StructureDefinition/extension-Claim.encounter",
+              "valueReference": {
+                "reference": "Encounter/ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f"
+              }
+            }
+          ],
+          "careTeam": [
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-careTeamClaimScope",
+                  "valueBoolean": true
+                }
+              ],
+              "provider": {
+                "reference": "Organization/a38110ca-b284-11ef-8444-0280bad11495"
+              },
+              "role": {
+                "coding": [
+                  {
+                    "code": "FA",
+                    "display": "Facility",
+                    "system": "https://codesystem.x12.org/005010/98"
+                  }
+                ],
+                "text": "Facility"
+              },
+              "sequence": 1
+            },
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-careTeamClaimScope",
+                  "valueBoolean": true
+                }
+              ],
+              "provider": {
+                "reference": "PractitionerRole/ed2ffe1f-1470-11ef-9ef2-0280bad11495"
+              },
+              "role": {
+                "coding": [
+                  {
+                    "code": "71",
+                    "display": "Attending Physician",
+                    "system": "https://codesystem.x12.org/005010/98"
+                  }
+                ],
+                "text": "Attending Physician"
+              },
+              "sequence": 2
+            }
+          ],
+          "created": "2025-11-26",
+          "diagnosis": [
+            {
+              "diagnosisCodeableConcept": {
+                "coding": [
+                  {
+                    "code": "M62.81",
+                    "display": "Muscle weakness (generalized)",
+                    "system": "http://hl7.org/fhir/sid/icd-10-cm"
+                  }
+                ],
+                "text": "Muscle weakness (generalized)"
+              },
+              "sequence": 1
+            }
+          ],
+          "enterer": {
+            "reference": "Practitioner/ed2ffe1e-1470-11ef-9ef2-0280bad11495"
+          },
+          "identifier": [
+            {
+              "system": "urn:trnorg:5",
+              "use": "usual",
+              "value": "3029250941"
+            }
+          ],
+          "insurance": [
+            {
+              "coverage": {
+                "reference": "Coverage/860244ae-9f2f-11f0-ac61-0a2d94f3c43f"
+              },
+              "focal": true,
+              "sequence": 1
+            }
+          ],
+          "insurer": {
+            "reference": "Organization/4a043b4e-07e4-11ef-ad06-0280bad11495"
+          },
+          "item": [
+            {
+              "extension": [
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-serviceItemRequestType",
+                  "valueCodeableConcept": {
+                    "coding": [
+                      {
+                        "code": "HS",
+                        "display": "Health Services Review",
+                        "system": "https://codesystem.x12.org/005010/1525"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-administrationReferenceNumber",
+                  "valueString": "A251852874"
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-requestedService",
+                  "valueReference": {
+                    "reference": "ServiceRequest/060c7afa-c485-11f0-ac6b-0a2d94f3c43f"
+                  }
+                },
+                {
+                  "url": "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/extension-itemTraceNumber",
+                  "valueIdentifier": {
+                    "system": "https://tracking-itemSequence-None",
+                    "value": "3029250941"
+                  }
+                }
+              ],
+              "careTeamSequence": [
+                1,
+                2
+              ],
+              "category": {
+                "coding": [
+                  {
+                    "code": "1",
+                    "display": "Medical Care",
+                    "system": "https://codesystem.x12.org/005010/1365"
+                  }
+                ],
+                "text": "Medical Care"
+              },
+              "diagnosisSequence": [
+                1
+              ],
+              "locationCodeableConcept": {
+                "coding": [
+                  {
+                    "code": "32",
+                    "display": "Hospital Outpatient Surgery performed in an Ambulatory Surgical Center",
+                    "system": "https://www.nubc.org/CodeSystem/TypeOfBill"
+                  }
+                ],
+                "text": "Hospital Outpatient Surgery performed in an Ambulatory Surgical Center"
+              },
+              "productOrService": {
+                "coding": [
+                  {
+                    "code": "37799",
+                    "display": "Unlisted, non-specific code for phlebectomy fewer than 10 incisions",
+                    "system": "https://evicore.com/cpt"
+                  }
+                ],
+                "text": "Unlisted, non-specific code for phlebectomy fewer than 10 incisions"
+              },
+              "quantity": {
+                "code": "1",
+                "system": "http://unitsofmeasure.org",
+                "unit": "unit",
+                "value": 1
+              },
+              "sequence": 1
+            }
+          ],
+          "patient": {
+            "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "priority": {
+            "coding": [
+              {
+                "code": "normal",
+                "display": "Normal",
+                "system": "http://terminology.hl7.org/CodeSystem/processpriority"
+              }
+            ],
+            "text": "Normal"
+          },
+          "provider": {
+            "reference": "Organization/a38110ca-b284-11ef-8444-0280bad11495"
+          },
+          "status": "active",
+          "type": {
+            "coding": [
+              {
+                "code": "institutional",
+                "display": "Institutional",
+                "system": "http://terminology.hl7.org/CodeSystem/claim-type"
+              }
+            ],
+            "text": "Institutional"
+          },
+          "use": "preauthorization",
+          "resourceType": "Claim"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:860244ae-9f2f-11f0-ac61-0a2d94f3c43f",
+        "resource": {
+          "id": "860244ae-9f2f-11f0-ac61-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-coverage"
+            ]
+          },
+          "beneficiary": {
+           "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "class": [
+            {
+              "name": "BurdenReduction",
+              "type": {
+                "coding": [
+                  {
+                    "code": "plan",
+                    "display": "Plan",
+                    "system": "http://terminology.hl7.org/CodeSystem/coverage-class"
+                  }
+                ],
+                "text": "Plan"
+              },
+              "value": "BurdenReduction"
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MB",
+                    "display": "Member Match Identifier",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Coverage Identifier"
+              },
+              "use": "official",
+              "value": "U1000774901"
+            }
+          ],
+          "payor": [
+            {
+              "reference": "Organization/4a043b4e-07e4-11ef-ad06-0280bad11495"
+            }
+          ],
+          "relationship": {
+            "coding": [
+              {
+                "code": "self",
+                "display": "Self",
+                "system": "http://terminology.hl7.org/CodeSystem/subscriber-relationship"
+              }
+            ],
+            "text": "Self"
+          },
+          "status": "active",
+          "subscriber": {
+            "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "subscriberId": "U1000774901",
+          "type": {
+            "coding": [
+              {
+                "code": "12345",
+                "display": "Primary",
+                "system": "http://snomed.info/sct"
+              }
+            ],
+            "text": "Primary"
+          },
+          "resourceType": "Coverage"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f",
+        "resource": {
+          "id": "ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-encounter"
+            ]
+          },
+          "class": {
+            "code": "AMB",
+            "display": "Ambulatory",
+            "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+          },
+          "diagnosis": [
+            {
+              "condition": {
+                "reference": "Condition/fad71d3e-c484-11f0-ac6b-0a2d94f3c43f"
+              }
+            }
+          ],
+          "identifier": [
+            {
+              "system": "https://emr.nucural.com/encounter-identifier",
+              "use": "official",
+              "value": "ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f"
+            }
+          ],
+          "participant": [
+            {
+              "individual": {
+                "reference": "Practitioner/ed2ffe1e-1470-11ef-9ef2-0280bad11495"
+              },
+              "period": {
+                "start": "2025-11-18T13:46:08Z"
+              },
+              "type": [
+                {
+                  "coding": [
+                    {
+                      "code": "ADM",
+                      "display": "admitter",
+                      "system": "http://terminology.hl7.org/CodeSystem/v3-ParticipationType"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "period": {
+            "start": "2025-11-18T13:46:08Z"
+          },
+          "serviceProvider": {
+            "reference": "Organization/a38110ca-b284-11ef-8444-0280bad11495"
+          },
+          "status": "in-progress",
+          "subject": {
+            "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "2",
+                  "display": "Established",
+                  "system": "http://snomed.info/sct"
+                }
+              ],
+              "text": "Established"
+            }
+          ],
+          "resourceType": "Encounter"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:79040cd8-9f2f-11f0-ac61-0a2d94f3c43f",
+        "resource": {
+          "id": "79040cd8-9f2f-11f0-ac61-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-beneficiary"
+            ]
+          },
+          "extension": [
+            {
+              "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex",
+              "valueCode": "M"
+            }
+          ],
+          "active": true,
+          "birthDate": "1973-07-05",
+          "communication": [
+            {
+              "language": {
+                "coding": [
+                  {
+                    "code": "en-US",
+                    "display": "English (United States)",
+                    "system": "urn:ietf:bcp:47"
+                  }
+                ],
+                "text": "English (United States)"
+              }
+            }
+          ],
+          "gender": "male",
+          "identifier": [
+            {
+              "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MB",
+                    "display": "Member Match Identifier",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Member Match Identifier"
+              },
+              "use": "official",
+              "value": "U1000774901"
+            },
+            {
+              "system": "http://example.org/cdex/payer/member-ids",
+              "type": {
+                "coding": [
+                  {
+                    "code": "UMB",
+                    "display": "Member Number",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Member Number"
+              },
+              "use": "official",
+              "value": "U1000774901"
+            },
+            {
+              "system": "http://hospital.smarthealthit.org",
+              "type": {
+                "coding": [
+                  {
+                    "code": "MR",
+                    "display": "Medical record number",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "Medical Record Number"
+              },
+              "use": "official",
+              "value": "U1000774901"
+            }
+          ],
+          "managingOrganization": {
+            "reference": "Organization/a668347c-ec4a-11ee-ad06-0280bad11495"
+          },
+          "name": [
+            {
+              "family": "INDVBXERLY",
+              "given": [
+                "AJMEOARWN"
+              ],
+              "use": "official"
+            }
+          ],
+          "resourceType": "Patient"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:060c7afa-c485-11f0-ac6b-0a2d94f3c43f",
+        "resource": {
+          "id": "060c7afa-c485-11f0-ac6b-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-servicerequest"
+            ]
+          },
+          "extension": [
+            {
+              "extension": [
+                {
+                  "url": "doc-needed",
+                  "valueCode": "clinical"
+                },
+                {
+                  "url": "questionnaire",
+                  "valueCanonical": "https://evicorebrpoc.evicore.com/hi2br/dtr/adaptive-questionnaire"
+                },
+                {
+                  "url": "date",
+                  "valueDateTime": "2025-11-18T00:00:00"
+                },
+                {
+                  "url": "coverage",
+                  "valueReference": {
+                    "reference": "Coverage/860244ae-9f2f-11f0-ac61-0a2d94f3c43f"
+                  }
+                },
+                {
+                  "url": "covered",
+                  "valueCode": "covered"
+                },
+                {
+                  "url": "pa-needed",
+                  "valueCode": "auth-needed"
+                }
+              ],
+              "url": "http://hl7.org/fhir/us/davinci-crd/StructureDefinition/ext-coverage-information"
+            }
+          ],
+          "authoredOn": "2025-11-18",
+          "code": {
+            "coding": [
+              {
+                "code": "37799",
+                "display": "Unlisted, non-specific code for phlebectomy fewer than 10 incisions",
+                "system": "https://evicore.com/cpt"
+              }
+            ],
+            "text": "Unlisted, non-specific code for phlebectomy fewer than 10 incisions"
+          },
+          "encounter": {
+            "reference": "Encounter/ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f"
+          },
+          "insurance": [
+            {
+              "reference": "Coverage/860244ae-9f2f-11f0-ac61-0a2d94f3c43f"
+            }
+          ],
+          "intent": "order",
+          "performer": [
+            {
+              "reference": "Organization/a38110ca-b284-11ef-8444-0280bad11495"
+            }
+          ],
+          "priority": "routine",
+          "quantityQuantity": {
+            "code": "kg",
+            "system": "http://unitsofmeasure.org",
+            "unit": "kg's",
+            "value": 1
+          },
+          "reasonReference": [
+            {
+              "reference": "Condition/fad71d3e-c484-11f0-ac6b-0a2d94f3c43f"
+            }
+          ],
+          "requester": {
+            "reference": "PractitionerRole/ed2ffe1f-1470-11ef-9ef2-0280bad11495"
+          },
+          "status": "active",
+          "subject": {
+            "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "resourceType": "ServiceRequest"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:a38110ca-b284-11ef-8444-0280bad11495",
+        "resource": {
+          "id": "a38110ca-b284-11ef-8444-0280bad11495",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-requestor"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "city": "FALLS CHURCH",
+              "country": "US",
+              "line": [
+                "3300 GALLOWS RD"
+              ],
+              "postalCode": "22042",
+              "state": "VA"
+            }
+          ],
+          "contact": [
+            {
+              "address": {
+                "country": "US"
+              },
+              "name": {
+                "family": "INOVA FAIRFAX HOSPITAL"
+              },
+              "telecom": [
+                {
+                  "system": "phone",
+                  "value": "5747646736"
+                }
+              ]
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "use": "official",
+              "value": "1427227578"
+            },
+            {
+              "system": "urn:oid:2.16.840.1.113883.4.4",
+              "use": "official",
+              "value": "540620889"
+            }
+          ],
+          "name": "INOVA FAIRFAX HOSPITAL",
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "7037764001"
+            }
+          ],
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "prov",
+                  "display": "Healthcare Provider",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Healthcare Provider"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:fad71d3e-c484-11f0-ac6b-0a2d94f3c43f",
+        "resource": {
+          "id": "fad71d3e-c484-11f0-ac6b-0a2d94f3c43f",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-condition-problems-health-concerns"
+            ]
+          },
+          "clinicalStatus": {
+            "coding": [
+              {
+                "code": "active",
+                "display": "Active",
+                "system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+              }
+            ],
+            "text": "Active"
+          },
+          "code": {
+            "coding": [
+              {
+               // "code": "M62.81",
+                "display": "Muscle weakness (generalized)",
+                "system": "http://hl7.org/fhir/sid/icd-10-cm"
+              }
+            ],
+            "text": "Muscle weakness (generalized)"
+          },
+          "encounter": {
+            "reference": "Encounter/ee5c42aa-c484-11f0-ac6b-0a2d94f3c43f"
+          },
+          "onsetDateTime": "2025-11-18T13:46:15Z",
+          "subject": {
+            "reference": "Patient/79040cd8-9f2f-11f0-ac61-0a2d94f3c43f"
+          },
+          "verificationStatus": {
+            "coding": [
+              {
+                "code": "confirmed",
+                "display": "Confirmed",
+                "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+              }
+            ],
+            "text": "Confirmed"
+          },
+          "resourceType": "Condition"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:4a043b4e-07e4-11ef-ad06-0280bad11495",
+        "resource": {
+          "id": "4a043b4e-07e4-11ef-ad06-0280bad11495",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-insurer"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "country": "US"
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://sid/us-insurer-id",
+              "type": {
+                "coding": [
+                  {
+                    "code": "NIIP",
+                    "display": "National Insurance Payor Identifier (Payor)",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "National Insurance Payor Identifier (Payor)"
+              },
+              "use": "official",
+              "value": "11060"
+            },
+            {
+              "system": "http://sid/us-insurer-code",
+              "type": {
+                "coding": [
+                  {
+                    "code": "NIIP",
+                    "display": "National Insurance Payor Identifier (Payor)",
+                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+                  }
+                ],
+                "text": "National Insurance Payor Identifier (Payor)"
+              },
+              "use": "official",
+              "value": "11060"
+            }
+          ],
+          "name": "CIGNA",
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "pay",
+                  "display": "Payer",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Payer"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:ed2ffe1f-1470-11ef-9ef2-0280bad11495",
+        "resource": {
+          "id": "ed2ffe1f-1470-11ef-9ef2-0280bad11495",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/core/StructureDefinition/us-core-practitionerrole"
+            ]
+          },
+          "active": true,
+          "organization": {
+            "reference": "Organization/a38110ca-b284-11ef-8444-0280bad11495"
+          },
+          "practitioner": {
+            "reference": "Practitioner/ed2ffe1e-1470-11ef-9ef2-0280bad11495"
+          },
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "9028813347"
+            }
+          ],
+          "resourceType": "PractitionerRole"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:ed2ffe1e-1470-11ef-9ef2-0280bad11495",
+        "resource": {
+          "id": "ed2ffe1e-1470-11ef-9ef2-0280bad11495",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-practitioner"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "country": "US"
+            }
+          ],
+          "gender": "male",
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "value": "9999999999"
+            }
+          ],
+          "name": [
+            {
+              "family": "Garudwar",
+              "given": [
+                "Sainath"
+              ]
+            }
+          ],
+          "telecom": [
+            {
+              "system": "email",
+              "value": "sainath.garudwar@evicore.com"
+            }
+          ],
+          "resourceType": "Practitioner"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:a668347c-ec4a-11ee-ad06-0280bad11495",
+        "resource": {
+          "id": "a668347c-ec4a-11ee-ad06-0280bad11495",
+          "meta": {
+            "profile": [
+              "http://hl7.org/fhir/us/davinci-pas/StructureDefinition/profile-organization"
+            ]
+          },
+          "active": true,
+          "address": [
+            {
+              "city": "Franklin",
+              "country": "US",
+              "line": [
+                "123 Main Street"
+              ],
+              "postalCode": "38305",
+              "state": "TN"
+            }
+          ],
+          "contact": [
+            {
+              "address": {
+                "city": "San Francisco",
+                "country": "US",
+                "line": [
+                  "123 ,ain Street Houston TX 77002"
+                ],
+                "postalCode": "38305",
+                "state": "TX"
+              },
+              "name": {
+                "given": [
+                  "EVICORE ORG"
+                ],
+                "use": "official"
+              },
+              "telecom": [
+                {
+                  "system": "phone",
+                  "value": "7589695858"
+                },
+                {
+                  "system": "email",
+                  "value": "k.y@gmail.com"
+                },
+                {
+                  "system": "fax",
+                  "value": "7589695858"
+                }
+              ]
+            },
+            {
+              "address": {
+               // "city": "Allen",
+                "country": "US",
+                "line": [
+                  "Glasgow ln"
+                ],
+                "postalCode": "75013",
+                "state": "TX"
+              }
+            }
+          ],
+          "identifier": [
+            {
+              "system": "http://hl7.org/fhir/sid/us-npi",
+              "use": "official",
+              "value": "1053609073"
+            }
+          ],
+          "name": "EVICORE ORG",
+          "telecom": [
+            {
+              "system": "phone",
+              "value": "+1 (650) 555-0111"
+            }
+          ],
+          "type": [
+            {
+              "coding": [
+                {
+                  "code": "prov",
+                  "display": "Healthcare Provider",
+                  "system": "http://terminology.hl7.org/CodeSystem/organization-type"
+                }
+              ],
+              "text": "Healthcare Provider"
+            }
+          ],
+          "resourceType": "Organization"
+        }
+      }
+    ],
+    "link": [
+      {
+        "relation": "self",
+        "url": "https://bfee16.devhcp.com/fhir/Claim?_id=1430251e-c485-11f0-ac6b-0a2d94f3c43f&_include=*"
+      }
+    ],
+    "total": 1,
+    "type": "searchset",
+    "resourceType": "Bundle"
+  }
+}
+
+settings {
+  encodeUrl: false
+  timeout: 0
+}

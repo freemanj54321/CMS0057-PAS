@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in · PAS $inquire Tester</title>
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <div class="gate">
+    <div class="gate-card">
+      <svg width="28" height="28" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M6 10h8M10 6v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <h1>PAS $inquire Tester</h1>
+      <p>Da Vinci PAS STU 2 · CMS-0057. Sign in to run tests against the payer UAT endpoint.</p>
+      <button class="btn btn-primary" id="signInBtn">Sign in with Google</button>
+      <div class="auth-error" id="authError"></div>
+    </div>
+  </div>
+  <script type="module" src="./js/login.js"></script>
+</body>
+</html>

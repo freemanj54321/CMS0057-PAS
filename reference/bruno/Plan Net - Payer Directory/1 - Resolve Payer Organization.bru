@@ -1,0 +1,105 @@
+meta {
+  name: 1 - Resolve Payer Organization
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{planNetBaseUrl}}/Organization?identifier=http://hl7.org/fhir/sid/us-npi|{{payerNpi}}&type=pay
+  body: none
+  auth: none
+}
+
+vars:pre-request {
+  payerNpi: 11060
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  // Extract the first matched Organization for use in subsequent calls
+  const body = res.getBody();
+  
+  if (body && body.entry && body.entry.length > 0) {
+    const org = body.entry[0].resource;
+    
+    // Set the payer org FHIR resource ID for downstream queries
+    bru.setVar("payerOrgId", org.id);
+    
+    // Capture the canonical name (overwrites env default if found)
+    if (org.name) {
+      bru.setVar("payerOrgName", org.name);
+    }
+    
+    // Capture the NPI identifier value
+    const npiIdent = (org.identifier || []).find(
+      i => i.system === "http://hl7.org/fhir/sid/us-npi"
+    );
+    if (npiIdent) {
+      bru.setVar("payerNpi", npiIdent.value);
+    }
+    
+    console.log("✅ Payer Organization resolved:");
+    console.log("   ID:   " + org.id);
+    console.log("   Name: " + org.name);
+    console.log("   NPI:  " + (npiIdent ? npiIdent.value : "(not found)"));
+  } else {
+    console.warn("⚠️  No Organization found for NPI: " + bru.getVar("payerNpi"));
+    console.warn("    Check planNetBaseUrl and payerNpi are set correctly.");
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a FHIR Bundle", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("Bundle");
+  });
+  
+  test("At least one Organization returned", function() {
+    const body = res.getBody();
+    expect(body.entry).to.be.an("array").that.is.not.empty;
+  });
+  
+  test("Organization has NPI identifier", function() {
+    const body = res.getBody();
+    const org = body.entry[0].resource;
+    const npi = (org.identifier || []).some(
+      i => i.system === "http://hl7.org/fhir/sid/us-npi"
+    );
+    expect(npi).to.be.true;
+  });
+}
+
+docs {
+  # Step 1 — Resolve Payer Organization
+  
+  Queries the Plan Net directory to find the payer's Organization resource
+  by NPI. This gives you the payer's canonical name and FHIR resource ID
+  needed for the Insurer reference in the PAS $inquire Bundle.
+  
+  ## Search Parameters
+  | Parameter     | Value                              | Purpose                           |
+  |---------------|------------------------------------|------------------------------------|
+  | `identifier`  | `http://hl7.org/fhir/sid/us-npi\|{NPI}` | Match by NPI system + value   |
+  | `type`        | `pay`                              | Filter to payer organizations only |
+  
+  ## What gets set automatically
+  The post-response script captures:
+  - `payerOrgId` — Organization resource ID (used in Step 2)
+  - `payerOrgName` — canonical payer name (used in $inquire Bundle)
+  
+  ## Alternative search strategies
+  If you don't have the NPI, you can search by name:
+  ```
+  GET /Organization?name:contains=Aetna&type=pay
+  ```
+  
+  ## IG Profile
+  `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Organization`
+}

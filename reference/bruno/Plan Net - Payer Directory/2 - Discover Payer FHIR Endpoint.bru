@@ -1,0 +1,135 @@
+meta {
+  name: 2 - Discover Payer FHIR Endpoint
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{planNetBaseUrl}}/Endpoint?organization={{payerOrgId}}&connection-type=hl7-fhir-rest
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const body = res.getBody();
+  
+  if (body && body.entry && body.entry.length > 0) {
+    const endpoints = body.entry.map(e => e.resource);
+    
+    // Look for a PAS or general FHIR REST endpoint
+    // Prefer one whose name/description mentions PAS or prior-auth
+    let pasEndpoint = endpoints.find(ep =>
+      (ep.name || "").toLowerCase().includes("pas") ||
+      (ep.name || "").toLowerCase().includes("prior") ||
+      ((ep.payloadType || []).some(pt =>
+        (pt.coding || []).some(c =>
+          (c.code || "").includes("pas") || (c.code || "").includes("claim")
+        )
+      ))
+    );
+    
+    // Fall back to first FHIR REST endpoint
+    if (!pasEndpoint) {
+      pasEndpoint = endpoints[0];
+    }
+    
+    if (pasEndpoint && pasEndpoint.address) {
+      bru.setVar("payerFhirBaseUrl", pasEndpoint.address);
+      console.log("✅ Payer FHIR Endpoint discovered:");
+      console.log("   Address: " + pasEndpoint.address);
+      console.log("   Name:    " + (pasEndpoint.name || "(unnamed)"));
+      console.log("   Status:  " + (pasEndpoint.status || "unknown"));
+      
+      if (endpoints.length > 1) {
+        console.log("   ℹ️  " + endpoints.length + " endpoints found. Using first match.");
+        console.log("   All endpoints:");
+        endpoints.forEach((ep, i) => {
+          console.log("     [" + i + "] " + ep.address + " (" + (ep.name || "unnamed") + ")");
+        });
+      }
+
+      // Attempt to extract OAuth token endpoint from Endpoint extensions
+      // Some payers publish this in a SMART-on-FHIR extension
+      const allExtensions = (pasEndpoint.extension || []);
+      const smartExt = allExtensions.find(ext =>
+        (ext.url || "").includes("smart") ||
+        (ext.url || "").includes("oauth") ||
+        (ext.url || "").includes("token")
+      );
+      if (smartExt && smartExt.valueUrl) {
+        bru.setVar("discoveredTokenEndpoint", smartExt.valueUrl);
+        console.log("   🔑 OAuth token endpoint found: " + smartExt.valueUrl);
+      } else {
+        // Derive a SMART well-known URL hint for the user
+        console.log("   ℹ️  No OAuth extension found on Endpoint.");
+        console.log("   💡 Try: GET " + pasEndpoint.address + "/.well-known/smart-configuration");
+      }
+    }
+  } else {
+    console.warn("⚠️  No Endpoint found for Organization ID: " + bru.getVar("payerOrgId"));
+    console.warn("    The payer may not publish endpoints via Plan Net.");
+    console.warn("    Fall back to their developer portal for the FHIR base URL.");
+  }
+}
+
+tests {
+  test("Status is 200 OK", function() {
+    expect(res.getStatus()).to.equal(200);
+  });
+  
+  test("Response is a FHIR Bundle", function() {
+    const body = res.getBody();
+    expect(body.resourceType).to.equal("Bundle");
+  });
+  
+  test("At least one Endpoint returned", function() {
+    const body = res.getBody();
+    expect(body.entry).to.be.an("array").that.is.not.empty;
+  });
+  
+  test("Endpoint has an address", function() {
+    const body = res.getBody();
+    const ep = body.entry[0].resource;
+    expect(ep.address).to.be.a("string").that.is.not.empty;
+  });
+  
+  test("Endpoint status is active", function() {
+    const body = res.getBody();
+    const ep = body.entry[0].resource;
+    expect(ep.status).to.equal("active");
+  });
+}
+
+docs {
+  # Step 2 — Discover Payer FHIR Endpoint
+  
+  Finds the payer's FHIR server base URL that supports PAS operations.
+  Uses the Organization ID captured in Step 1 to query for associated
+  Endpoint resources.
+  
+  ## Search Parameters
+  | Parameter         | Value             | Purpose                                |
+  |-------------------|-------------------|-----------------------------------------|
+  | `organization`    | `{payerOrgId}`    | Endpoints belonging to this payer org   |
+  | `connection-type`  | `hl7-fhir-rest`   | Only FHIR REST endpoints (not HL7v2, etc.) |
+  
+  ## What gets set automatically
+  - `payerFhirBaseUrl` — the payer's FHIR base URL for subsequent authenticated calls
+  
+  ## Important notes
+  - A payer may publish **multiple endpoints** — the script prefers ones
+    with "PAS" or "prior" in the name, then falls back to the first.
+  - If no Endpoint is returned, check the payer's developer portal directly.
+    Not all payers publish their PAS endpoint in Plan Net yet.
+  - The discovered `payerFhirBaseUrl` is used as the target for:
+    - `POST /Patient/$member-match` (member identification)
+    - `GET /Coverage` (member data retrieval)
+    - `POST /Claim/$inquire` (the actual PAS inquiry)
+  
+  ## IG Profile
+  `http://hl7.org/fhir/us/davinci-pdex-plan-net/StructureDefinition/plannet-Endpoint`
+}

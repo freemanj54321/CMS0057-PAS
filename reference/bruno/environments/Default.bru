@@ -1,0 +1,43 @@
+vars {
+  // ══════════════════════════════════════════════════════════════
+  //  Default Environment — PAS $inquire Collection (globals only)
+  //  Request-specific values live as local vars in each .bru file
+  // ══════════════════════════════════════════════════════════════
+
+  // ── Endpoints ──────────────────────────────────────────────
+  planNetBaseUrl: https://payer.example.com/fhir/plan-net
+  baseUrl: https://payer.example.com/fhir/R4
+
+  // ── OAuth ──────────────────────────────────────────────────
+  tokenEndpoint: https://payer.example.com/oauth2/token
+  clientId: YOUR_CLIENT_ID
+  clientSecret: YOUR_CLIENT_SECRET
+  oauthScope: system/Claim.write system/Claim.read
+
+  // ── Code Systems ───────────────────────────────────────────
+  priorAuthRefSystem: https://payer.example.com/prior-auth
+  productOrServiceSystem: http://www.cms.gov/Medicare/Coding/HCPCSReleaseCodeSets
+  memberIdSystem: https://payer.example.com/member-ids
+  diagnosisSystem: http://hl7.org/fhir/sid/icd-10-cm
+  placeOfServiceSystem: https://www.cms.gov/Medicare/Coding/place-of-service-codes/Place_of_Service_Code_Set
+  itemTraceNumberSystem: https://yourorg.com/trace-numbers
+  encounterIdentifierSystem: https://emr.example.com/encounter-identifier
+  dtrQuestionnaireUrl: https://payer.example.com/dtr/adaptive-questionnaire
+
+  // ── Auto-populated by chain (do not set manually) ──────────
+  ~accessToken: 
+  ~tokenExpiresAt: 
+  ~discoveredTokenEndpoint: 
+  ~payerFhirBaseUrl: 
+  ~payerOrgId: 
+  ~providerFhirId: 
+  ~insurancePlanId: 
+  ~insurancePlanName: 
+  ~lastClaimResponseId: 
+  ~lastClaimResponseOutcome: 
+  ~lastReviewActionCode: 
+  ~lastReviewNumber: 
+  ~isoTimestamp: 
+  ~inquiryDate: 
+  ~submitterTxnIdValue: 
+}
