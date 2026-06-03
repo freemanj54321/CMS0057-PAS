@@ -8,6 +8,11 @@ const $ = (sel) => document.querySelector(sel);
 const results = {};      // testId -> result
 let selected = null;
 
+// Each test type ("group") is its own page; the nav switches between them.
+// Order follows TESTS so the chained flow reads left→right: Plan Net → Auth → $inquire.
+const PAGES = [...new Set(TESTS.map((t) => t.group))];
+let currentPage = PAGES[0];
+
 // ─── Auth gate: bounce to login.html when signed out ───────────────────────────
 onUser((user) => {
   if (!user) { location.replace("login.html"); return; }
@@ -23,13 +28,42 @@ $("#signOutBtn").addEventListener("click", () => signOutUser());
 function buildApp() {
   renderVars();
   renderRuntime();
+  renderNav();
   renderTests();
+  updateToolbar();
   $("#runAllBtn").addEventListener("click", runAll);
   $("#resetRuntimeBtn").addEventListener("click", () => {
     for (const k of RUNTIME_KEYS) vars.setRuntime(k, "");
     renderRuntime();
     toast("Runtime variables cleared");
   });
+}
+
+// ─── Page navigation ───────────────────────────────────────────────────────────
+function renderNav() {
+  const host = $("#pageNav");
+  host.innerHTML = "";
+  for (const page of PAGES) {
+    const btn = document.createElement("button");
+    btn.textContent = page;
+    btn.className = page === currentPage ? "active" : "";
+    btn.addEventListener("click", () => switchPage(page));
+    host.appendChild(btn);
+  }
+}
+
+function switchPage(page) {
+  if (page === currentPage) return;
+  currentPage = page;
+  selected = null;            // detail pane resets to the empty state for the new page
+  renderNav();
+  renderTests();
+  renderDetail();
+  updateToolbar();
+}
+
+function updateToolbar() {
+  $("#runAllBtn").textContent = "Run all " + currentPage + " (in order)";
 }
 
 // ─── Variables panel ────────────────────────────────────────────────────────────
@@ -75,18 +109,12 @@ function renderRuntime() {
 }
 
 // ─── Tests list ──────────────────────────────────────────────────────────────
+function pageTests() { return TESTS.filter((t) => t.group === currentPage); }
+
 function renderTests() {
   const host = $("#testList");
   host.innerHTML = "";
-  let lastGroup = null;
-  for (const t of TESTS) {
-    if (t.group !== lastGroup) {
-      const h = document.createElement("div");
-      h.className = "group-label";
-      h.textContent = t.group;
-      host.appendChild(h);
-      lastGroup = t.group;
-    }
+  for (const t of pageTests()) {
     const card = document.createElement("div");
     card.className = "test-card";
     card.id = "card_" + t.id;
@@ -101,6 +129,7 @@ function renderTests() {
     card.querySelector(".tc-body").addEventListener("click", () => select(t.id));
     card.querySelector("#run_" + t.id).addEventListener("click", (e) => { e.stopPropagation(); runTest(t); });
     host.appendChild(card);
+    renderCardResult(t); // restore pass/fail state if this test was already run
   }
 }
 
@@ -109,28 +138,39 @@ async function runTest(t) {
   setDot(t.id, "spin");
   $("#status_" + t.id).textContent = "Running…";
   try {
-    const result = await t.run({ vars });
-    results[t.id] = result;
-    setDot(t.id, result.ok ? "ok" : "err");
-    const passed = result.assertions.filter((a) => a.pass).length;
-    $("#status_" + t.id).innerHTML =
-      `<span class="${result.ok ? "status-ok" : "status-err"}">${result.ok ? "PASS" : "FAIL"}</span> · ${passed}/${result.assertions.length} checks · HTTP ${result.status}${result.durationMs != null ? " · " + result.durationMs + "ms" : ""}`;
+    results[t.id] = await t.run({ vars });
   } catch (e) {
-    results[t.id] = { ok: false, status: 0, assertions: [{ label: "Request error", pass: false }], response: { error: e.message }, request: {} };
-    setDot(t.id, "err");
-    $("#status_" + t.id).innerHTML = `<span class="status-err">ERROR</span> · ${esc(e.message)}`;
+    results[t.id] = { ok: false, errored: true, status: 0, assertions: [{ label: "Request error", pass: false }], response: { error: e.message }, request: {} };
   }
+  renderCardResult(t);
   renderRuntime();
   select(t.id);
 }
 
+// Paint a test card's dot + status line from its stored result. No-op if the test
+// hasn't run, or its card isn't on the current page (so it's safe to call on render).
+function renderCardResult(t) {
+  const r = results[t.id];
+  const statusEl = $("#status_" + t.id);
+  if (!r || !statusEl) return;
+  if (r.errored) {
+    setDot(t.id, "err");
+    statusEl.innerHTML = `<span class="status-err">ERROR</span> · ${esc(r.response?.error || "")}`;
+    return;
+  }
+  setDot(t.id, r.ok ? "ok" : "err");
+  const passed = r.assertions.filter((a) => a.pass).length;
+  statusEl.innerHTML =
+    `<span class="${r.ok ? "status-ok" : "status-err"}">${r.ok ? "PASS" : "FAIL"}</span> · ${passed}/${r.assertions.length} checks · HTTP ${r.status}${r.durationMs != null ? " · " + r.durationMs + "ms" : ""}`;
+}
+
 async function runAll() {
   $("#runAllBtn").disabled = true;
-  for (const t of TESTS) { await runTest(t); }
+  for (const t of pageTests()) { await runTest(t); }
   $("#runAllBtn").disabled = false;
 }
 
-function setDot(id, state) { $("#dot_" + id).className = "dot " + state; }
+function setDot(id, state) { const el = $("#dot_" + id); if (el) el.className = "dot " + state; }
 
 // ─── Detail viewer ─────────────────────────────────────────────────────────────
 function select(testId) {
