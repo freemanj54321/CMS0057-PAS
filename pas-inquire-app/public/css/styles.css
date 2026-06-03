@@ -1,5 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* The [hidden] attribute must win over component display rules (e.g. .gate uses
+   display:grid, which would otherwise keep a hidden=true element visible). */
+[hidden] { display: none !important; }
+
 :root {
   --bg: #ffffff; --bg-secondary: #f8f8f7;
   --bg-success: #eaf3de; --bg-warning: #faeeda; --bg-danger: #fcebeb; --bg-info: #e6f1fb;

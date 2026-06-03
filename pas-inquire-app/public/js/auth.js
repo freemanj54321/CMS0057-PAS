@@ -60,13 +60,21 @@ export function onUser(cb) {
 
 export async function signIn() {
   const provider = new GoogleAuthProvider();
-  // Popups are fine against the local Auth emulator; on real origins COOP can sever
-  // the popup handoff, so use a full-page redirect instead.
-  if (isLocal) {
+  // Use a popup on every origin. signInWithRedirect is unreliable when the serving
+  // origin (…web.app) differs from authDomain (…firebaseapp.com): browsers block the
+  // cross-site storage it depends on, so the session is lost on return and the user
+  // is bounced back to the login page. The popup handoff works because firebase.json
+  // sets COOP "same-origin-allow-popups". Fall back to redirect only if the popup is
+  // blocked or unsupported (where redirect at least has a chance of completing).
+  try {
     await signInWithPopup(auth, provider);
-    return;
+  } catch (e) {
+    if (!isLocal && (e?.code === "auth/popup-blocked" || e?.code === "auth/operation-not-supported-in-this-environment")) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+    throw e;
   }
-  await signInWithRedirect(auth, provider);
 }
 
 export async function signOutUser() { await signOut(auth); }

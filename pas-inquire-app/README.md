@@ -33,7 +33,7 @@ request body's `headers`, while the HTTP `Authorization` header carries the Fire
 | `public/js/bundleBuilders.js` | FHIR request-bundle builders (full + minimal graphs) |
 | `public/js/claimResponse.js` | ClaimResponse formatter |
 | `public/js/auth.js`, `api.js` | Firebase Auth/App Check + proxy client |
-| `public/js/tests/*` | one test per Bruno request (OAuth, Plan-Net 0–5, 5 `$inquire` variants) |
+| `public/js/tests/*` | OAuth, Plan-Net 0–5, and `$inquire` variants mapped to the PAS Inquire User Stories (PAS-INQ-001…011) |
 | `functions/index.js` | `pasProxy`: `/api/token` + `/api/proxy`, Auth + App Check gating |
 
 ## Prerequisites
@@ -128,6 +128,29 @@ If the payer doesn't publish Plan-Net, skip steps 1–5 and set `PAS FHIR base U
 
 `OAuth — Get Access Token` · `Plan Net 0–5` · `Inquire — Full Bundle` · `Inquire — Specific PA Lookup` · `Inquire — Broad Patient Query` · `Inquire — By Service Code` · `Inquire — Minimum Viable`.
 (`PAS $Inquire.bru` and `Inquire - Full.bru`/`Inquire - Full Bundle (UAT).bru` are byte-identical; collapsed into one **Full Bundle** test.)
+
+### User-story coverage (PAS Inquire User Stories, PAS-INQ-001…011)
+
+The `$inquire` tests double as a conformance harness for the user stories. Each test's
+description cites the `PAS-INQ-00X` id and the acceptance criteria it checks; failures on
+the negative/gap tests are the intended signal that eviCore's UAT endpoint does not yet
+meet the story.
+
+| Story | Test(s) |
+| --- | --- |
+| INQ-001 Broad member search | `Inquire — Broad Patient Query` (asserts clean-empty vs Auth ID + Case ID + status on every result) |
+| INQ-002 Search by Case ID (IOCaseNumber) | `Inquire — By Case ID` |
+| INQ-003 X12 306 status code mapping | `Inquire — Full Bundle` / `Specific PA Lookup` (asserts code ∈ A1/A2/A3/A4/A6/CT/OU + display + item-level) |
+| INQ-004 Portal-created discoverable | covered by `Broad Patient Query` (documented) |
+| INQ-005 Search by servicing provider NPI | `Inquire — By Servicing Provider NPI` |
+| INQ-006 Search by CPT/HCPCS | `Inquire — By Service Code` (asserts results reference the queried code) |
+| INQ-007 Meaningful error responses | `Inquire — Unknown Member`, `Inquire — Invalid Auth ID` (expect OperationOutcome, not silent empty) |
+| INQ-008 Search by date range | `Inquire — By Date Range` |
+| INQ-011 Lightweight 5-resource + Auth ID | `Inquire — Lightweight 5-Resource + Auth ID` |
+| INQ-009 Subscriptions / INQ-010 Companion guide | out of scope — not `$inquire`-testable |
+
+New inquiry search keys (Case ID, servicing NPI, cert/service date ranges, negative-test
+member ID and Auth ID) are editable under the **Inquiry Search Keys** variable group.
 
 ## Known gaps / to verify
 
