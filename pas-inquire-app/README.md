@@ -87,16 +87,30 @@ Workflows live in `.github/workflows/` (repo root):
 
 Because `public/js/firebaseConfig.js` and `functions/.env.*` are git-ignored, CI **regenerates** them: the public web config is baked into the workflow, while the allow-list / App Check toggle come from repo **Variables**.
 
-### One-time GitHub setup
+### CI authenticates via Workload Identity Federation (keyless)
 
-1. **Service account** (Google Cloud console → *IAM & Admin → Service Accounts*, project `cms0057-pas-inquire`):
-   - Create `github-deployer`, grant: **Firebase Hosting Admin**, **Cloud Functions Admin**, **Cloud Run Admin**, **Artifact Registry Administrator**, **Service Account User**, **Firebase Authentication Viewer** (or simply **Editor** + **Service Account User** for an internal project).
-   - Create a **JSON key** and download it.
-2. **Repo secret** (GitHub → *Settings → Secrets and variables → Actions → Secrets*):
-   - `FIREBASE_SERVICE_ACCOUNT` = the full JSON key contents.
-3. **Repo variables** (same screen → *Variables*, all optional):
-   - `ALLOWED_EMAILS` (comma-separated), `ALLOWED_EMAIL_DOMAIN`, `APP_CHECK_SITE_KEY`, `APP_CHECK_REQUIRED` (`true`/`false`).
-4. Ensure the project is on **Blaze** (functions deploy needs billing).
+The workflows authenticate to Google Cloud with **`google-github-actions/auth@v2`** over OIDC —
+**no service-account JSON key is stored in GitHub**. The GCP side is already provisioned:
+
+- Service account: `github-deployer@cms0057-pas-inquire.iam.gserviceaccount.com`
+  (Hosting Admin, Cloud Functions Admin, Cloud Run Admin, Artifact Registry Admin,
+  Cloud Build Editor, Service Account User, Service Usage Consumer).
+- Workload Identity provider:
+  `projects/664197318701/locations/global/workloadIdentityPools/github-pool/providers/github-provider`,
+  restricted to the `freemanj54321/CMS0057-PAS` repo. Both values are set as `env:` in the workflows.
+
+To re-create from scratch (e.g. a new project/repo), see `gcloud iam workload-identity-pools`
++ a `roles/iam.workloadIdentityUser` binding on the SA for
+`principalSet://…/attribute.repository/<owner>/<repo>`.
+
+### Remaining one-time setup
+
+1. **Repo variables** (GitHub → *Settings → Secrets and variables → Actions → Variables*):
+   - `ALLOWED_EMAILS` (comma-separated) and/or `ALLOWED_EMAIL_DOMAIN` — **set at least one**, or
+     the function allows any verified Google account. `APP_CHECK_SITE_KEY` + `APP_CHECK_REQUIRED`
+     (`true`/`false`) only once a reCAPTCHA Enterprise key exists.
+2. **Firebase Auth** → enable **Google** sign-in (Console → Authentication → Sign-in method).
+3. Project is already on **Blaze** with required APIs enabled. ✓
 
 Push to `main` (or run the workflow manually) to deploy.
 

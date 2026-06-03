@@ -10,9 +10,12 @@ on:
 
 permissions:
   contents: read
+  id-token: write # required for Workload Identity Federation (OIDC)
 
 env:
   PROJECT_ID: cms0057-pas-inquire
+  WIF_PROVIDER: projects/664197318701/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  DEPLOY_SA: github-deployer@cms0057-pas-inquire.iam.gserviceaccount.com
 
 concurrency:
   group: firebase-deploy-${{ github.ref }}
@@ -75,10 +78,13 @@ jobs:
             echo "ALLOWED_EMAIL_DOMAIN=${{ vars.ALLOWED_EMAIL_DOMAIN }}"
           } > ".env.${PROJECT_ID}"
 
-      - name: Write service account
-        run: printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
 
       - name: Deploy hosting + functions
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        # google-github-actions/auth exports GOOGLE_APPLICATION_CREDENTIALS, which firebase-tools uses.
         run: npx --yes firebase-tools@13 deploy --only hosting,functions --project "$PROJECT_ID" --non-interactive

@@ -9,9 +9,12 @@ on:
 permissions:
   contents: read
   pull-requests: write
+  id-token: write # required for Workload Identity Federation (OIDC)
 
 env:
   PROJECT_ID: cms0057-pas-inquire
+  WIF_PROVIDER: projects/664197318701/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+  DEPLOY_SA: github-deployer@cms0057-pas-inquire.iam.gserviceaccount.com
 
 jobs:
   preview:
@@ -63,15 +66,18 @@ jobs:
             fs.writeFileSync("public/js/firebaseConfig.js", out);
           '
 
-      - name: Write service account
-        run: printf '%s' '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
 
       # Hosting preview channel. /api/** still routes to the LIVE pasProxy function
       # (preview channels don't get their own functions), so previews need the live
       # function deployed once.
       - name: Deploy preview channel
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        # google-github-actions/auth exports GOOGLE_APPLICATION_CREDENTIALS, which firebase-tools uses.
         run: |
           npx --yes firebase-tools@13 hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" \
             --project "$PROJECT_ID" --expires 7d --non-interactive
