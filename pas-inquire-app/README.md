@@ -29,6 +29,7 @@ request body's `headers`, while the HTTP `Authorization` header carries the Fire
 | Path | Purpose |
 |------|---------|
 | `public/index.html`, `css/styles.css` | UI shell |
+| `public/js/app.js` | UI controller: auth gate, per-test-type page nav, test list/detail, run logic |
 | `public/js/vars.js` | full variable schema (from `reference/.../Default.bru`) + form/runtime stores |
 | `public/js/bundleBuilders.js` | FHIR request-bundle builders (full + minimal graphs) |
 | `public/js/claimResponse.js` | ClaimResponse formatter |
@@ -118,11 +119,15 @@ Push to `main` (or run the workflow manually) to deploy.
 
 1. Open the app, sign in.
 2. In **Variables**, enter the payer endpoints and your **Client ID / Secret** (OAuth group).
-3. Run tests individually, or **Run all (in order)**:
-   `Plan Net 0–5` (discovery, populates `payerFhirBaseUrl`/`payerOrgId`) → `OAuth` (mints token) → `$inquire` variants.
+3. Each test type has its own page, selected from the top nav — **Plan Net**, **Auth**, **$inquire** —
+   ordered left→right to match the chained flow. Run tests individually, or use the page's
+   **Run all … (in order)** button to run just that page's tests. The shared **Variables** and
+   **Runtime variables** persist across pages, so the end-to-end flow is reproducible by working
+   the pages in order: `Plan Net 0–5` (discovery, populates `payerFhirBaseUrl`/`payerOrgId`) →
+   `Auth` (mints token) → `$inquire` variants.
 4. Each test shows **PASS/FAIL** with assertions, the formatted ClaimResponse, raw JSON, and the outgoing request bundle. Chained values appear under **Runtime variables**.
 
-If the payer doesn't publish Plan-Net, skip steps 1–5 and set `PAS FHIR base URL` (`baseUrl`) directly, then run OAuth + an `$inquire`.
+If the payer doesn't publish Plan-Net, skip the **Plan Net** page and set `PAS FHIR base URL` (`baseUrl`) directly, then run **Auth** + an `$inquire`.
 
 ## Tests (one per Bruno request)
 
