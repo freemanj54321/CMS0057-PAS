@@ -143,7 +143,7 @@ meet the story.
 
 | Story | Test(s) |
 | --- | --- |
-| INQ-001 Broad member search | `Inquire — Broad Patient Query` (asserts clean-empty vs Auth ID + Case ID + status on every result) |
+| INQ-001 Broad member search | `Broad Patient Query (Match Expected)` — real member, expects ≥1 result, all returned w/ Auth ID + Case ID + status; `Broad Patient Query (No Match / Fabricated)` — fabricated member, expects a clean empty Bundle |
 | INQ-002 Search by Case ID (IOCaseNumber) | `Inquire — By Case ID` |
 | INQ-003 X12 306 status code mapping | `Inquire — Full Bundle` / `Specific PA Lookup` (asserts code ∈ A1/A2/A3/A4/A6/CT/OU + display + item-level) |
 | INQ-004 Portal-created discoverable | covered by `Broad Patient Query` (documented) |

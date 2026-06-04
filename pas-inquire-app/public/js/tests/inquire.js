@@ -123,21 +123,33 @@ export const inquireTests = [
     },
   }),
   makeInquire({
-    id: "inquireBroad", name: "Inquire — Broad Patient Query",
-    doc: "PAS-INQ-001 (+INQ-004). Minimal bundle, no Auth ID, productOrService='not-applicable' — should return ALL authorizations on file for the member (incl. portal-created cases). AC3: no match → clean empty Bundle, not an error. AC4: each result carries Auth ID + Case ID + reviewActionCode.",
-    build: (v) => buildMinimalBundle(v, { serviceMode: "na" }), requireClaimResponse: false,
+    id: "inquireBroadMatch", name: "Inquire — Broad Patient Query (Match Expected)",
+    doc: "PAS-INQ-001 (+INQ-004). Minimal bundle for a REAL member (memberIdValue), no Auth ID, productOrService='not-applicable'. Expects authorizations to be returned. AC2: when a member has multiple authorizations, ALL are returned (none truncated). AC4: each result carries Auth ID + Case ID + reviewActionCode. Use a member known to have ≥1 authorization (incl. portal-created cases per INQ-004).",
+    build: (v) => buildMinimalBundle(v, { serviceMode: "na" }), requireClaimResponse: true,
     check: ({ body, crs }) => {
-      if (crs.length === 0) return [assertCleanEmpty(body, crs)];
       const everyHasAuth = crs.every((c) => adminRefOf(c));
       const everyHasCase = crs.every((c) => ioCaseNumber(c));
       const everyHasReview = crs.every((c) => getReviewActionCode(c));
-      return [
-        A(`Returned ${crs.length} authorization(s)`, true),
-        A("Every result carries administrationReferenceNumber (INQ-001 AC4)", everyHasAuth),
-        A("Every result carries IOCaseNumber identifier (INQ-001 AC4)", everyHasCase),
-        A("Every result carries a reviewActionCode (INQ-001 AC4)", everyHasReview),
+      const out = [
+        A(`Returned ${crs.length} authorization(s) — at least one expected`, crs.length >= 1),
+        A("Every result carries administrationReferenceNumber (INQ-001 AC4)", crs.length > 0 && everyHasAuth),
+        A("Every result carries IOCaseNumber identifier (INQ-001 AC4)", crs.length > 0 && everyHasCase),
+        A("Every result carries a reviewActionCode (INQ-001 AC4)", crs.length > 0 && everyHasReview),
       ];
+      // AC2: if the server reports a total, confirm every match was returned (not truncated).
+      if (body.total != null) out.push(A(`All ${body.total} matching authorization(s) returned (INQ-001 AC2)`, crs.length === body.total));
+      return out;
     },
+  }),
+  makeInquire({
+    id: "inquireBroadNoMatch", name: "Inquire — Broad Patient Query (No Match / Fabricated)",
+    doc: "PAS-INQ-001 AC3. Control test: minimal broad bundle using a COMPLETELY FABRICATED member (badMemberIdValue) that matches no patient. The response SHALL be a valid, clean empty Bundle (total=0, zero ClaimResponse entries, no error OperationOutcome) — never any results. Guards against false-positive matches in the broad-search path.",
+    build: (v) => buildMinimalBundle(v, { serviceMode: "na", memberOverride: "bad" }), requireClaimResponse: false,
+    check: ({ body, crs }) => [
+      assertCleanEmpty(body, crs),
+      A("No ClaimResponse entries returned for fabricated member", crs.length === 0),
+      ...(body.total != null ? [A("Bundle.total = 0", body.total === 0)] : []),
+    ],
   }),
   makeInquire({
     id: "inquireByCaseId", name: "Inquire — By Case ID (IOCaseNumber)",

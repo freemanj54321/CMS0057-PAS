@@ -6,15 +6,37 @@ export function getExtVal(extensions, urlFragment) {
   return extensions.find((e) => e.url && e.url.includes(urlFragment)) || null;
 }
 
-export function getReviewActionCode(cr) {
-  for (const adj of cr.adjudication || []) {
-    const ra = getExtVal(adj.extension, "reviewAction");
+// The reviewAction complex extension lives on an adjudication, matched by url containing
+// "reviewAction" but NOT "reviewActionCode" (that's the sub-extension). It can appear at
+// claim-level (cr.adjudication) or item-level (cr.item[].adjudication) — search both.
+function reviewActionExt(adj) {
+  return (adj.extension || []).find((e) => (e.url || "").includes("reviewAction") && !(e.url || "").includes("reviewActionCode")) || null;
+}
+function eachAdjudication(cr) {
+  const out = [...(cr.adjudication || [])];
+  for (const item of cr.item || []) out.push(...(item.adjudication || []));
+  return out;
+}
+function reviewSubCoding(cr, subUrlFragment) {
+  for (const adj of eachAdjudication(cr)) {
+    const ra = reviewActionExt(adj);
     if (ra) {
-      const rac = getExtVal(ra.extension, "reviewActionCode");
-      if (rac) return rac.valueCodeableConcept?.coding?.[0] || null;
+      const sub = getExtVal(ra.extension, subUrlFragment);
+      const coding = sub?.valueCodeableConcept?.coding?.[0];
+      if (coding) return coding;
     }
   }
   return null;
+}
+
+// X12 306 review action status (A1/A2/A3/A4/A6/CT/OU, …).
+export function getReviewActionCode(cr) {
+  return reviewSubCoding(cr, "reviewActionCode");
+}
+
+// X12 886 service-review decision reason code (https://x12.org/codes/service-review-decision-reason-codes).
+export function getReviewReasonCode(cr) {
+  return reviewSubCoding(cr, "reasonCode");
 }
 
 // A1/A2/A3 certified-ish, A4/A6/A7 pended, CA/CT/NA denied.
