@@ -76,11 +76,14 @@ export function renderFormatted(data) {
   let html = "";
   for (const c of cr) {
     const review = getReviewActionCode(c);
+    const reason = getReviewReasonCode(c);
     const ids = (c.identifier || []).map((i) => ({ label: i.type?.text || (i.system || "").split("/").pop(), val: i.value }));
     html += `<div class="card"><div class="card-header">
       <div><div class="card-title">ClaimResponse</div><div class="card-sub">${esc(c.id || "")}</div></div>
       <div style="text-align:right">${reviewBadge(review)}${c.disposition ? `<div class="card-sub">${esc(c.disposition)}</div>` : ""}</div>
     </div><table class="kv">
+      <tr><td>X12 status</td><td>${esc(review ? `${review.code}${review.display ? " — " + review.display : ""}` : "—")}</td></tr>
+      <tr><td>X12 reason</td><td>${esc(reason ? `${reason.code}${reason.display ? " — " + reason.display : ""}` : "none")}</td></tr>
       <tr><td>Status</td><td>${esc(c.status || "—")}</td></tr>
       <tr><td>Outcome</td><td>${esc(c.outcome || "—")}</td></tr>
       <tr><td>Created</td><td>${esc(c.created || "—")}</td></tr>

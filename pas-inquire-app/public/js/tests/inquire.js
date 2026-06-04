@@ -4,7 +4,7 @@
 // access token, then asserts the response against the story's acceptance criteria.
 import { proxy } from "../api.js";
 import { buildFullBundle, buildMinimalBundle } from "../bundleBuilders.js";
-import { getReviewActionCode } from "../claimResponse.js";
+import { getReviewActionCode, getReviewReasonCode } from "../claimResponse.js";
 
 const A = (label, pass) => ({ label, pass: !!pass });
 
@@ -43,6 +43,21 @@ function assertCleanEmpty(body, crs) {
   return A("Clean empty Bundle (total=0, no error OperationOutcome)", crs.length === 0 && !hasErrorIssue(body));
 }
 
+// Applied to every test: each returned ClaimResponse SHALL carry a valid X12 306 review
+// status (hard, gates ok); its X12 886 reason code is surfaced informationally (always
+// passes — many statuses legitimately have none). Checks claim- AND item-level adjudication.
+function x12Assertions(crs) {
+  const out = [];
+  crs.forEach((cr, idx) => {
+    const tag = crs.length > 1 ? `[${adminRefOf(cr) || idx}] ` : "";
+    const status = getReviewActionCode(cr);
+    out.push(A(`${tag}X12 review status present (A1/A2/A3/A4/A6/CT/OU)`, !!status && X12_306.includes(status.code)));
+    const reason = getReviewReasonCode(cr);
+    out.push(A(`${tag}X12 reason code (886): ${reason ? `${reason.code}${reason.display ? " — " + reason.display : ""}` : "none"}`, true));
+  });
+  return out;
+}
+
 function makeInquire({ id, name, doc, build, requireClaimResponse, check }) {
   return {
     id, name, group: "$inquire", doc,
@@ -73,12 +88,13 @@ function makeInquire({ id, name, doc, build, requireClaimResponse, check }) {
       const body = res.body || {};
       const crs = (body.entry || []).map((e) => e.resource).filter((r) => r?.resourceType === "ClaimResponse");
       const first = crs[0];
-      let reviewLabel = "";
       if (first) {
         vars.setRuntime("lastClaimResponseId", first.id || "");
         vars.setRuntime("lastClaimResponseOutcome", first.outcome || "");
         const code = getReviewActionCode(first);
-        if (code) { vars.setRuntime("lastReviewActionCode", code.code); reviewLabel = `${code.code} — ${REVIEW[code.code] || code.display || ""}`; }
+        if (code) vars.setRuntime("lastReviewActionCode", code.code);
+        const reason = getReviewReasonCode(first);
+        if (reason) vars.setRuntime("lastReviewReasonCode", reason.code);
         const ar = adminRefOf(first);
         if (ar) vars.setRuntime("lastReviewNumber", ar);
       }
@@ -87,7 +103,8 @@ function makeInquire({ id, name, doc, build, requireClaimResponse, check }) {
         A("Response is a Bundle", body.resourceType === "Bundle"),
       ];
       if (requireClaimResponse) assertions.push(A("ClaimResponse present", !!first));
-      if (reviewLabel) assertions.push(A("Review action: " + reviewLabel, true));
+      // X12 status (hard) + reason code (informational) on EVERY returned ClaimResponse.
+      assertions.push(...x12Assertions(crs));
       // story-specific acceptance-criteria assertions
       if (check) assertions.push(...check({ body, res, crs, first, vars }));
 
@@ -102,12 +119,12 @@ function makeInquire({ id, name, doc, build, requireClaimResponse, check }) {
 export const inquireTests = [
   makeInquire({
     id: "inquireFull", name: "Inquire — Full Bundle",
-    doc: "PAS-INQ-003. Complete 11-resource graph matching eviCore UAT; PA ref on item.administrationReferenceNumber. Asserts the returned reviewActionCode is a valid X12 306 status (= Inquire - Full Bundle (UAT)).",
+    doc: "PAS-INQ-003. Complete 11-resource graph matching eviCore UAT; PA ref on item.administrationReferenceNumber. The X12 306 status (e.g. A4) and X12 886 reason code are checked centrally; here we also verify the status display text (AC4) and item-level status (AC5). (= Inquire - Full Bundle (UAT).)",
     build: buildFullBundle, requireClaimResponse: true,
     check: ({ first }) => {
       const code = getReviewActionCode(first);
-      const out = [A("Review action code in X12 306 set (A1/A2/A3/A4/A6/CT/OU)", code && X12_306.includes(code.code))];
-      if (code) out.push(A("Review action code has display text", !!(code.display || REVIEW[code.code])));
+      const out = [];
+      if (code) out.push(A("X12 status has display text (INQ-003 AC4)", !!(code.display || REVIEW[code.code])));
       const item = itemLevelReviewCode(first);
       if (item) out.push(A("Item-level reviewActionCode present (INQ-003 AC5)", X12_306.includes(item.code)));
       return out;
@@ -115,12 +132,8 @@ export const inquireTests = [
   }),
   makeInquire({
     id: "inquireSpecific", name: "Inquire — Specific PA Lookup",
-    doc: "PAS-INQ-003. Same full graph; looks up a single authorization by priorAuthRefNumber and validates its X12 306 status code.",
+    doc: "PAS-INQ-003. Same full graph; looks up a single authorization by priorAuthRefNumber. Its X12 306 status + X12 886 reason code are validated by the central per-result check.",
     build: buildFullBundle, requireClaimResponse: true,
-    check: ({ first }) => {
-      const code = getReviewActionCode(first);
-      return [A("Review action code in X12 306 set", code && X12_306.includes(code.code))];
-    },
   }),
   makeInquire({
     id: "inquireBroadMatch", name: "Inquire — Broad Patient Query (Match Expected)",
@@ -129,12 +142,11 @@ export const inquireTests = [
     check: ({ body, crs }) => {
       const everyHasAuth = crs.every((c) => adminRefOf(c));
       const everyHasCase = crs.every((c) => ioCaseNumber(c));
-      const everyHasReview = crs.every((c) => getReviewActionCode(c));
+      // (reviewActionCode on every result is asserted centrally via x12Assertions)
       const out = [
         A(`Returned ${crs.length} authorization(s) — at least one expected`, crs.length >= 1),
         A("Every result carries administrationReferenceNumber (INQ-001 AC4)", crs.length > 0 && everyHasAuth),
         A("Every result carries IOCaseNumber identifier (INQ-001 AC4)", crs.length > 0 && everyHasCase),
-        A("Every result carries a reviewActionCode (INQ-001 AC4)", crs.length > 0 && everyHasReview),
       ];
       // AC2: if the server reports a total, confirm every match was returned (not truncated).
       if (body.total != null) out.push(A(`All ${body.total} matching authorization(s) returned (INQ-001 AC2)`, crs.length === body.total));

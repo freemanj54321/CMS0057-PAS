@@ -157,6 +157,14 @@ meet the story.
 New inquiry search keys (Case ID, servicing NPI, cert/service date ranges, negative-test
 member ID and Auth ID) are editable under the **Inquiry Search Keys** variable group.
 
+**X12 status & reason on every result.** Every test that returns a ClaimResponse is checked
+(claim-level *and* item-level adjudication) for a valid X12 306 review status — `A1`, `A2`,
+`A3`, `A4`, `A6`, `CT`, `OU` — as a hard assertion. The X12 886
+[service-review decision reason code](https://x12.org/codes/service-review-decision-reason-codes)
+is surfaced informationally (shown in the formatted card, the assertion list, and the
+`lastReviewReasonCode` runtime var) — it does not fail a test when absent, since many
+statuses (e.g. a plain `A4` pend) legitimately carry no reason.
+
 ## Known gaps / to verify
 
 - **OAuth shape** — implemented per `OAuth - Get Access Token.bru` (form-urlencoded `grant_type=client_credentials`). The old mockup used multipart `Client_Id`/`Client_Secret`; confirm which eviCore UAT accepts and adjust `functions/index.js#/token` if needed.

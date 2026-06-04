@@ -111,7 +111,7 @@ export const RUNTIME_KEYS = [
   "accessToken", "tokenExpiresAt", "discoveredTokenEndpoint", "payerFhirBaseUrl",
   "payerOrgId", "providerFhirId", "insurancePlanId", "insurancePlanName",
   "lastClaimResponseId", "lastClaimResponseOutcome", "lastReviewActionCode",
-  "lastReviewNumber", "isoTimestamp", "inquiryDate", "submitterTxnIdValue",
+  "lastReviewReasonCode", "lastReviewNumber", "isoTimestamp", "inquiryDate", "submitterTxnIdValue",
 ];
 
 const SECRET_KEYS = SCHEMA.flatMap((g) => g.fields.filter((f) => f.secret).map((f) => f.key));
